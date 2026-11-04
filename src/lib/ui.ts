@@ -33,8 +33,7 @@ export function toast(title: string, opts: { detail?: string[]; tone?: 'bad'; co
 }
 
 export function handleError(e: unknown) {
-  if (e instanceof DbError) toast(e.message, { tone: 'bad', code: e.constraint });
-  else toast(e instanceof Error ? e.message : 'Terjadi kesalahan.', { tone: 'bad' });
+  toast(e instanceof Error ? e.message : 'Something went wrong. Please try again.', { tone: 'bad' });
 }
 
 /** Run a write; on success toast + optional effects list. Returns true on success. */
@@ -67,7 +66,7 @@ export function confirmDialog(o: { title: string; body: string; confirm: string;
     d.innerHTML = `<form method="dialog">
       <div class="modal-head"><div><h2>${esc(o.title)}</h2><p>${o.body}</p></div></div>
       <div class="modal-foot">
-        <button class="c-btn c-btn--outline c-btn--sm" value="no">batal</button>
+        <button class="c-btn c-btn--outline c-btn--sm" value="no">cancel</button>
         <button class="c-btn ${o.danger ? 'c-btn--danger' : ''} c-btn--sm" value="yes">${esc(o.confirm)}</button>
       </div></form>`;
     d.addEventListener('close', () => resolve(d.returnValue === 'yes'));
@@ -93,7 +92,7 @@ export interface FieldDef {
 function fieldHtml(f: FieldDef, value: unknown) {
   const id = 'f_' + f.name;
   const v = value ?? '';
-  const col = f.col === false ? '' : `<span class="col">${esc(f.col ?? f.name)}</span>`;
+  const col = '';
   const req = f.required ? '<span class="req" aria-hidden="true">*</span>' : '';
   const help = f.help ? `<span class="help">${esc(f.help)}</span>` : '';
   const common = `id="${id}" name="${f.name}" ${f.required ? 'required' : ''} ${f.placeholder ? `placeholder="${esc(f.placeholder)}"` : ''}`;
@@ -103,7 +102,7 @@ function fieldHtml(f: FieldDef, value: unknown) {
       control = `<textarea class="textarea" ${common}>${esc(v)}</textarea>`;
       break;
     case 'select':
-      control = `<select class="select" ${common}>${f.required ? '' : '<option value="">— kosong (NULL) —</option>'}${(f.options ?? [])
+      control = `<select class="select" ${common}>${f.required ? '' : '<option value="">— None —</option>'}${(f.options ?? [])
         .map(([ov, ol]) => `<option value="${esc(ov)}" ${String(ov) === String(v) ? 'selected' : ''}>${esc(ol)}</option>`)
         .join('')}</select>`;
       break;
@@ -116,12 +115,12 @@ function fieldHtml(f: FieldDef, value: unknown) {
           <div class="preview">${v ? `<img src="${esc(v)}" alt="">` : icon('image')}</div>
           <div class="stack">
             <input type="hidden" name="${f.name}" value="${esc(v)}">
-            <input class="input" type="url" data-url placeholder="https://… atau unggah file" value="${String(v).startsWith('data:') ? '' : esc(v)}">
+            <input class="input" type="url" data-url placeholder="https://… or upload a file" value="${String(v).startsWith('data:') ? '' : esc(v)}">
             <div class="inline-actions">
-              <label class="c-btn c-btn--outline c-btn--sm">${icon('image')} unggah gambar<input type="file" accept="image/*" hidden data-file></label>
-              <button type="button" class="c-btn c-btn--ghost c-btn--sm" data-clear>hapus gambar</button>
+              <label class="c-btn c-btn--outline c-btn--sm">${icon('image')} upload image<input type="file" accept="image/*" hidden data-file></label>
+              <button type="button" class="c-btn c-btn--ghost c-btn--sm" data-clear>remove image</button>
             </div>
-            <span class="help">${String(v).startsWith('data:') ? 'Gambar unggahan tersimpan di browser (WebP 400px).' : 'Unggahan dikompres otomatis ke WebP 400px agar muat di localStorage.'}</span>
+            <span class="help">Uploaded images are resized automatically.</span>
           </div>
         </div><span class="error" hidden></span></div>`;
     default: {
@@ -149,10 +148,10 @@ export function openForm(o: {
   const d = makeDialog(o.fields.length <= 2 ? 'sm' : '');
   d.innerHTML = `<form novalidate>
     <div class="modal-head"><div><h2>${esc(o.title)}</h2>${o.subtitle ? `<p>${o.subtitle}</p>` : ''}</div>
-      <button type="button" class="c-btn c-btn--ghost c-btn--icon" data-close aria-label="Tutup">${icon('x')}</button></div>
+      <button type="button" class="c-btn c-btn--ghost c-btn--icon" data-close aria-label="Close">${icon('x')}</button></div>
     <div class="modal-body">${o.fields.map((f) => fieldHtml(f, o.values?.[f.name])).join('')}</div>
     <div class="modal-foot">
-      <button type="button" class="c-btn c-btn--outline c-btn--sm" data-close>batal</button>
+      <button type="button" class="c-btn c-btn--outline c-btn--sm" data-close>cancel</button>
       <button type="submit" class="c-btn c-btn--sm ${o.danger ? 'c-btn--danger' : ''}">${esc(o.submit)}</button>
     </div></form>`;
   const form = d.querySelector('form')!;
@@ -179,7 +178,7 @@ export function openForm(o: {
         const data = await compressImage(file);
         url.value = '';
         set(data);
-        toast(`Gambar dikompres: ${Math.round((data.length * 0.75) / 1024)} KB`);
+        toast('Image added');
       } catch (err) {
         handleError(err);
       }
@@ -209,14 +208,14 @@ export function openForm(o: {
         if (box) {
           box.classList.add('invalid');
           const msg = box.querySelector<HTMLElement>('.error')!;
-          msg.textContent = `${err.message} (${err.constraint})`;
+          msg.textContent = err.message;
           msg.removeAttribute('hidden');
           box.querySelector<HTMLElement>('input:not([type=hidden]),select,textarea')?.focus();
         } else {
           const div = document.createElement('div');
           div.className = 'form-error';
           div.setAttribute('role', 'alert');
-          div.innerHTML = `<span>${esc(err.message)}</span><code>${esc(err.constraint)}</code>`;
+          div.textContent = err.message;
           form.querySelector('.modal-body')!.prepend(div);
         }
       } else handleError(err);
@@ -270,10 +269,10 @@ export function mountTable(el: HTMLElement, cfg: TableConfig) {
 
   el.classList.add('panel');
   el.innerHTML = `<div class="toolbar">
-      ${cfg.search ? `<label class="search"><span class="sr-only">Cari</span>${icon('search')}<input class="input" type="search" placeholder="${esc(cfg.searchPlaceholder ?? 'Cari…')}" value="${esc(st.q)}" data-q></label>` : ''}
+      ${cfg.search ? `<label class="search"><span class="sr-only">Search</span>${icon('search')}<input class="input" type="search" placeholder="${esc(cfg.searchPlaceholder ?? 'Search…')}" value="${esc(st.q)}" data-q></label>` : ''}
       ${(cfg.filters ?? [])
         .map(
-          (f) => `<label><span class="sr-only">${esc(f.label)}</span><select class="select" data-filter="${f.key}"><option value="">${esc(f.label)}: semua</option>${f.options
+          (f) => `<label><span class="sr-only">${esc(f.label)}</span><select class="select" data-filter="${f.key}"><option value="">${esc(f.label)}: all</option>${f.options
             .map(([v, l]) => `<option value="${esc(v)}" ${st.f[f.key] === v ? 'selected' : ''}>${esc(l)}</option>`)
             .join('')}</select></label>`,
         )
@@ -284,11 +283,11 @@ export function mountTable(el: HTMLElement, cfg: TableConfig) {
     </div>
     <div class="table-wrap"><table class="data"><thead><tr>${shown
       .map((c) => {
-        const code = c.code === false ? '' : `<span class="col">${esc(c.code ?? c.key)}</span>`;
+        const code = '';
         const inner = c.sort ? `<button type="button" data-sort="${c.key}"><span class="sort">${esc(c.label)} ${icon('sort')}</span>${code}</button>` : `${esc(c.label)}${code}`;
         return `<th class="${c.cls ?? ''}" data-col="${c.key}">${inner}</th>`;
       })
-      .join('')}${cfg.actions ? '<th class="right"><span class="sr-only">Aksi</span></th>' : ''}</tr></thead><tbody></tbody></table></div>
+      .join('')}${cfg.actions ? '<th class="right"><span class="sr-only">Actions</span></th>' : ''}</tr></thead><tbody></tbody></table></div>
     <div class="pager" data-pager></div>`;
 
   const tbody = el.querySelector('tbody')!;
@@ -319,14 +318,14 @@ export function mountTable(el: HTMLElement, cfg: TableConfig) {
     st.page = Math.min(st.page, pages - 1);
     const slice = rows.slice(st.page * size, st.page * size + size);
     const total = cfg.rows().length;
-    info.textContent = rows.length === total ? `${total} baris` : `${rows.length} dari ${total} baris`;
+    info.textContent = rows.length === total ? `${total} ${total === 1 ? 'item' : 'items'}` : `${rows.length} of ${total} items`;
     el.querySelectorAll<HTMLElement>('th[data-col]').forEach((th) => {
       if (st.sort && th.dataset.col === st.sort.key) th.setAttribute('aria-sort', st.sort.dir === 1 ? 'ascending' : 'descending');
       else th.removeAttribute('aria-sort');
     });
     if (!slice.length) {
       tbody.innerHTML = `<tr><td colspan="${shown.length + (cfg.actions ? 1 : 0)}"><div class="empty">${icon('inbox')}<span>${
-        total ? 'Tidak ada baris yang cocok dengan pencarian atau filter.' : esc(cfg.empty ?? 'Belum ada data.')
+        total ? 'Nothing matches your search or filters.' : esc(cfg.empty ?? 'Nothing here yet.')
       }</span></div></td></tr>`;
     } else {
       tbody.innerHTML = slice
@@ -340,9 +339,9 @@ export function mountTable(el: HTMLElement, cfg: TableConfig) {
     }
     pager.innerHTML =
       pages > 1
-        ? `<span class="num">Hal. ${st.page + 1} / ${pages}</span>
-           <button class="c-btn c-btn--outline c-btn--sm" data-page="-1" ${st.page === 0 ? 'disabled' : ''}>sebelumnya</button>
-           <button class="c-btn c-btn--outline c-btn--sm" data-page="1" ${st.page >= pages - 1 ? 'disabled' : ''}>berikutnya</button>`
+        ? `<span class="num">Page ${st.page + 1} of ${pages}</span>
+           <button class="c-btn c-btn--outline c-btn--sm" data-page="-1" ${st.page === 0 ? 'disabled' : ''}>previous</button>
+           <button class="c-btn c-btn--outline c-btn--sm" data-page="1" ${st.page >= pages - 1 ? 'disabled' : ''}>next</button>`
         : '';
     pager.hidden = pages <= 1;
   };
@@ -380,8 +379,8 @@ export function mountTable(el: HTMLElement, cfg: TableConfig) {
   });
   el.querySelector('[data-csv]')?.addEventListener('click', () => {
     const cols = cfg.columns.filter((c) => c.csv);
-    downloadCsv(cfg.csvName!, cols.map((c) => c.code || c.key), visible().map((r) => cols.map((c) => c.csv!(r))));
-    toast(`CSV ${cfg.csvName} diunduh`);
+    downloadCsv(cfg.csvName!, cols.map((c) => c.label), visible().map((r) => cols.map((c) => c.csv!(r))));
+    toast('CSV downloaded');
   });
 
   render();
@@ -393,7 +392,7 @@ export function mountTable(el: HTMLElement, cfg: TableConfig) {
 }
 
 export function stars(n: number) {
-  return `<span class="stars" aria-label="${n} dari 5 bintang">${[1, 2, 3, 4, 5].map((i) => icon('review').replace('<svg', `<svg class="${i <= n ? 'on' : 'off'}" ${i <= n ? 'fill="currentColor"' : ''}`)).join('')}</span>`;
+  return `<span class="stars" aria-label="${n} out of 5 stars">${[1, 2, 3, 4, 5].map((i) => icon('review').replace('<svg', `<svg class="${i <= n ? 'on' : 'off'}" ${i <= n ? 'fill="currentColor"' : ''}`)).join('')}</span>`;
 }
 
 export function rowButtons(btns: Array<{ act: string; label: string; ic: Parameters<typeof icon>[0]; danger?: boolean }>) {

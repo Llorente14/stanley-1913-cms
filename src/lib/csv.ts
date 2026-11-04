@@ -14,5 +14,5 @@ export function downloadCsv(name: string, header: string[], rows: unknown[][]) {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  log('export', name, `Export CSV ${name}`, [`${rows.length} baris`]);
+  log('export', name, `Exported ${name} to CSV`, [`${rows.length} rows`]);
 }

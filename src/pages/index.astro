@@ -10,8 +10,8 @@ import { ICONS } from '../lib/icons.ts';
       <p class="lead" data-today></p>
     </div>
     <div class="actions">
-      <a class="c-btn c-btn--outline" href="/orders?status=pending">pesanan menunggu</a>
-      <a class="c-btn" href="/products?new=1"><Fragment set:html={ICONS.plus} /> tambah produk</a>
+      <a class="c-btn c-btn--outline" href="/orders?status=pending">pending orders</a>
+      <a class="c-btn" href="/products?new=1"><Fragment set:html={ICONS.plus} /> add product</a>
     </div>
   </div>
 
@@ -20,36 +20,35 @@ import { ICONS } from '../lib/icons.ts';
   <div class="grid-2">
     <section class="panel">
       <div class="panel-head">
-        <h2>Pendapatan 30 hari</h2>
+        <h2>Revenue, last 30 days</h2>
         <span class="muted num" data-rev-total></span>
       </div>
       <div class="panel-body">
         <svg class="chart" data-chart role="img"></svg>
         <details style="margin-top:10px">
-          <summary class="note" style="cursor:pointer">Lihat sebagai tabel</summary>
+          <summary class="note" style="cursor:pointer">Show as table</summary>
           <div class="table-wrap" style="max-height:260px;overflow:auto;margin-top:8px"><table class="data" data-chart-table></table></div>
         </details>
-        <p class="note" style="margin-top:8px">Pesanan reguler berstatus <i>confirmed</i> atau <i>completed</i>, total = Σ(qty × unit_price) − diskon + ongkir.</p>
       </div>
     </section>
     <section class="panel">
-      <div class="panel-head"><h2>Produk terlaris</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/products">semua produk</a></div>
+      <div class="panel-head"><h2>Best sellers</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/products">all products</a></div>
       <ol class="rank" data-top></ol>
     </section>
   </div>
 
   <div class="grid-2">
     <section class="panel">
-      <div class="panel-head"><h2>Pesanan terbaru</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/orders">semua pesanan</a></div>
+      <div class="panel-head"><h2>Latest orders</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/orders">all orders</a></div>
       <div class="table-wrap"><table class="data" data-recent></table></div>
     </section>
     <div style="display:grid;gap:24px">
       <section class="panel">
-        <div class="panel-head"><h2>Stok menipis</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/products?stock=low">kelola stok</a></div>
+        <div class="panel-head"><h2>Low stock</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/products?stock=low">manage stock</a></div>
         <ul class="rank" data-low></ul>
       </section>
       <section class="panel">
-        <div class="panel-head"><h2>Aktivitas terakhir</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/activity">log lengkap</a></div>
+        <div class="panel-head"><h2>Recent activity</h2><a class="c-btn c-btn--ghost c-btn--sm" href="/activity">full log</a></div>
         <ul class="feed" data-feed></ul>
       </section>
     </div>
@@ -66,23 +65,23 @@ import { ICONS } from '../lib/icons.ts';
     import { icon } from '../lib/icons.ts';
 
     const $ = <T extends Element = HTMLElement>(s: string) => document.querySelector<T>(s)!;
-    const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const now = new Date();
     const h = now.getHours();
-    $('[data-hello]').textContent = `${h < 11 ? 'Selamat pagi' : h < 15 ? 'Selamat siang' : h < 19 ? 'Selamat sore' : 'Selamat malam'}, ${session()?.name.split(' ')[0] ?? 'Admin'}`;
-    $('[data-today]').textContent = `${DAYS[now.getDay()]}, ${fmtDate(localDate(now))} · ringkasan toko stanley_store`;
+    $('[data-hello]').textContent = `${h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'}, ${session()?.name.split(' ')[0] ?? 'Admin'}`;
+    $('[data-today]').textContent = `${DAYS[now.getDay()]}, ${fmtDate(localDate(now))} · store overview`;
 
-    const compact = (n: number) => (n >= 1e9 ? (n / 1e9).toFixed(1).replace('.', ',') + ' M' : n >= 1e6 ? (n / 1e6).toFixed(1).replace('.', ',') + ' jt' : n >= 1e3 ? Math.round(n / 1e3) + ' rb' : String(n));
+    const compact = (n: number) => (n >= 1e9 ? (n / 1e9).toFixed(1) + 'B' : n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? Math.round(n / 1e3) + 'K' : String(n));
 
     function renderKpis() {
       const k = kpis();
       const delta = k.revenuePrevMonth ? ((k.revenueMonth - k.revenuePrevMonth) / k.revenuePrevMonth) * 100 : null;
       $('[data-kpis]').innerHTML = `
-        <div class="kpi"><span class="k-label">Pendapatan bulan ini</span><span class="k-value">Rp ${compact(k.revenueMonth)}</span>
-          <span class="k-sub ${delta == null ? '' : delta >= 0 ? 'up' : 'down'}">${delta == null ? 'belum ada pembanding' : `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(0)}% vs bulan lalu`}</span></div>
-        <a class="kpi" href="/orders?status=pending"><span class="k-label">Menunggu pembayaran</span><span class="k-value">${k.pendingPayment}</span><span class="k-sub">kedaluwarsa setelah 24 jam</span></a>
-        <a class="kpi" href="/orders?shipment=packed"><span class="k-label">Perlu dikirim</span><span class="k-value">${k.toShip}</span><span class="k-sub">shipment berstatus packed</span></a>
-        <a class="kpi" href="/warranty-claims?status=submitted"><span class="k-label">Klaim garansi terbuka</span><span class="k-value">${k.openClaims}</span><span class="k-sub">${k.members} member dari ${k.customers} customer</span></a>`;
+        <div class="kpi"><span class="k-label">Revenue this month</span><span class="k-value">Rp ${compact(k.revenueMonth)}</span>
+          <span class="k-sub ${delta == null ? '' : delta >= 0 ? 'up' : 'down'}">${delta == null ? 'no data for last month' : `${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toFixed(0)}% vs last month`}</span></div>
+        <a class="kpi" href="/orders?status=pending"><span class="k-label">Awaiting payment</span><span class="k-value">${k.pendingPayment}</span><span class="k-sub">expire after 24 hours</span></a>
+        <a class="kpi" href="/orders?shipment=packed"><span class="k-label">Ready to ship</span><span class="k-value">${k.toShip}</span><span class="k-sub">packed and waiting for courier</span></a>
+        <a class="kpi" href="/warranty-claims?status=submitted"><span class="k-label">Open warranty claims</span><span class="k-value">${k.openClaims}</span><span class="k-sub">${k.members} members of ${k.customers} customers</span></a>`;
     }
 
     function renderChart() {
@@ -98,8 +97,8 @@ import { ICONS } from '../lib/icons.ts';
       const y = (v: number) => T + ih - (v / top) * ih;
       const ticks = [0, top / 2, top];
       const total = data.reduce((s, d) => s + d.value, 0);
-      $('[data-rev-total]').textContent = `${rupiah(total)} · ${data.reduce((s, d) => s + d.orders, 0)} pesanan`;
-      svg.setAttribute('aria-label', `Pendapatan harian 30 hari terakhir, total ${rupiah(total)}. Tertinggi ${rupiah(max)}.`);
+      $('[data-rev-total]').textContent = `${rupiah(total)} · ${data.reduce((s, d) => s + d.orders, 0)} orders`;
+      svg.setAttribute('aria-label', `Daily revenue for the last 30 days, total ${rupiah(total)}. Highest day ${rupiah(max)}.`);
       let s = ticks.map((t) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(t)}" y2="${y(t)}"/><text x="${L - 8}" y="${y(t) + 4}" text-anchor="end">${compact(t)}</text>`).join('');
       data.forEach((d, i) => {
         const x = L + i * bw;
@@ -115,13 +114,13 @@ import { ICONS } from '../lib/icons.ts';
         if (i % 5 === 0 || i === data.length - 1) s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle">${Number(d.date.slice(8))}/${Number(d.date.slice(5, 7))}</text>`;
       });
       svg.innerHTML = s;
-      $('[data-chart-table]').innerHTML = `<thead><tr><th>Tanggal</th><th class="right">Pesanan</th><th class="right">Pendapatan</th></tr></thead><tbody>${[...data].reverse().map((d) => `<tr><td class="num">${fmtDate(d.date)}</td><td class="right num">${d.orders}</td><td class="right num">${rupiah(d.value)}</td></tr>`).join('')}</tbody>`;
+      $('[data-chart-table]').innerHTML = `<thead><tr><th>Date</th><th class="right">Orders</th><th class="right">Revenue</th></tr></thead><tbody>${[...data].reverse().map((d) => `<tr><td class="num">${fmtDate(d.date)}</td><td class="right num">${d.orders}</td><td class="right num">${rupiah(d.value)}</td></tr>`).join('')}</tbody>`;
       const tip = $('[data-tip]');
       svg.onmousemove = (e) => {
         const el = (e.target as Element).closest('[data-i]');
         if (!el) { tip.style.opacity = '0'; return; }
         const d = data[Number(el.getAttribute('data-i'))];
-        tip.innerHTML = `<b>${fmtDate(d.date)}</b><br>${rupiah(d.value)} · ${d.orders} pesanan`;
+        tip.innerHTML = `<b>${fmtDate(d.date)}</b><br>${rupiah(d.value)} · ${d.orders} orders`;
         tip.style.left = Math.min(e.clientX + 14, innerWidth - 190) + 'px';
         tip.style.top = e.clientY - 46 + 'px';
         tip.style.opacity = '1';
@@ -134,25 +133,25 @@ import { ICONS } from '../lib/icons.ts';
       const maxRev = Math.max(...top.map((t) => t.revenue), 1);
       $('[data-top]').innerHTML = top.length
         ? top.map((t) => `<li>${t.product?.image_url ? `<img class="thumb" src="${esc(t.product.image_url)}" alt="" loading="lazy">` : '<span class="thumb"></span>'}
-            <div style="min-width:0"><b>${esc(t.product?.name)}</b><small>${esc(t.product?.color)} · ${number(t.qty)} terjual</small><div class="meter"><i style="width:${((t.revenue / maxRev) * 100).toFixed(1)}%"></i></div></div>
+            <div style="min-width:0"><b>${esc(t.product?.name)}</b><small>${esc(t.product?.color)} · ${number(t.qty)} sold</small><div class="meter"><i style="width:${((t.revenue / maxRev) * 100).toFixed(1)}%"></i></div></div>
             <span class="num">${rupiah(t.revenue)}</span></li>`).join('')
-        : `<li class="empty">Belum ada penjualan.</li>`;
+        : `<li class="empty">No sales yet.</li>`;
 
       const recent = [...all('orders')].sort((a, b) => (a.ordered_at < b.ordered_at ? 1 : -1)).slice(0, 7);
-      $('[data-recent]').innerHTML = `<thead><tr><th>No. pesanan</th><th>Customer</th><th class="right">Total</th><th>Status</th></tr></thead><tbody>${recent
+      $('[data-recent]').innerHTML = `<thead><tr><th>Order</th><th>Customer</th><th class="right">Total</th><th>Status</th></tr></thead><tbody>${recent
         .map((o) => `<tr class="clickable" onclick="location.href='/order?id=${o.order_id}'"><td><a class="mono" href="/order?id=${o.order_id}">${esc(o.order_number)}</a><br><small class="muted">${relative(o.ordered_at)}</small></td><td>${esc(customerName(o.customer_id))}</td><td class="right num">${rupiah(orderTotal(o))}</td><td>${badge(o.status)}</td></tr>`)
         .join('')}</tbody>`;
 
       const low = all('product').filter((p) => p.is_active && p.stock_qty <= 5).sort((a, b) => a.stock_qty - b.stock_qty).slice(0, 5);
       $('[data-low]').innerHTML = low.length
-        ? low.map((p) => `<li>${p.image_url ? `<img class="thumb" src="${esc(p.image_url)}" alt="" loading="lazy">` : '<span class="thumb"></span>'}<div style="min-width:0"><b>${esc(p.name)}</b><small>${esc(p.color)} · <span class="mono">${esc(p.sku)}</span></small></div>${p.stock_qty === 0 ? '<span class="badge bad">habis</span>' : `<span class="badge warn">${p.stock_qty} tersisa</span>`}</li>`).join('')
-        : '<li class="empty">Semua stok aman.</li>';
+        ? low.map((p) => `<li>${p.image_url ? `<img class="thumb" src="${esc(p.image_url)}" alt="" loading="lazy">` : '<span class="thumb"></span>'}<div style="min-width:0"><b>${esc(p.name)}</b><small>${esc(p.color)} · <span class="mono">${esc(p.sku)}</span></small></div>${p.stock_qty === 0 ? '<span class="badge bad">sold out</span>' : `<span class="badge warn">${p.stock_qty} left</span>`}</li>`).join('')
+        : '<li class="empty">All products are well stocked.</li>';
 
       const feed = entries().filter((e) => e.action !== 'login').slice(0, 5);
       const ic = { create: 'plus', update: 'edit', delete: 'trash', status: 'refresh', export: 'download', login: 'clock' } as const;
       $('[data-feed]').innerHTML = feed.length
         ? feed.map((e) => `<li><span class="ic">${icon(ic[e.action])}</span><div>${esc(e.title)}${e.detail?.length ? `<small>${e.detail.map(esc).join(' · ')}</small>` : ''}</div><time>${relative(e.at)}</time></li>`).join('')
-        : `<li><span class="ic">${icon('clock')}</span><div>Belum ada aktivitas.<small>Perubahan data oleh admin akan muncul di sini.</small></div><time></time></li>`;
+        : `<li><span class="ic">${icon('clock')}</span><div>No activity yet.<small>Changes you make will show up here.</small></div><time></time></li>`;
     }
 
     const all3 = () => { renderKpis(); renderChart(); renderLists(); };

@@ -3,13 +3,13 @@ import AdminLayout from '../layouts/AdminLayout.astro';
 import { ICONS } from '../lib/icons.ts';
 ---
 
-<AdminLayout title="Kode promo" active="promo-codes" crumbs={[{ label: 'Penjualan' }, { label: 'Kode promo' }]}>
+<AdminLayout title="Promo codes" active="promo-codes" crumbs={[{ label: 'Sales' }, { label: 'Promo codes' }]}>
   <div class="page-head">
     <div>
-      <h1>Kode promo</h1>
-      <p class="lead">Satu kode per pesanan. Tidak berlaku untuk produk Sale atau <code>is_promo_eligible = false</code>. Kode personal (<code>membership_id</code> terisi) hanya untuk pemiliknya.</p>
+      <h1>Promo codes</h1>
+      <p class="lead">One code per order. Codes don't apply to sale items or products excluded from promotions. Personal codes, such as birthday codes, work only for their owner.</p>
     </div>
-    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> kode baru</button></div>
+    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> new code</button></div>
   </div>
   <section data-table></section>
 
@@ -25,13 +25,13 @@ import { ICONS } from '../lib/icons.ts';
     const used = (p: Row) => all('orders').filter((o) => o.promo_code_id === p.promo_code_id && o.status !== 'cancelled').length;
     function state(p: Row) {
       const now = nowLocal();
-      if (p.usage_limit && used(p) >= p.usage_limit) return ['kuota habis', 'bad'];
-      if (now < p.starts_at) return ['terjadwal', 'info'];
-      if (now > p.ends_at) return ['berakhir', ''];
-      return ['aktif', 'ok'];
+      if (p.usage_limit && used(p) >= p.usage_limit) return ['used up', 'bad'];
+      if (now < p.starts_at) return ['scheduled', 'info'];
+      if (now > p.ends_at) return ['ended', ''];
+      return ['active', 'ok'];
     }
     const owner = (p: Row) => {
-      if (!p.membership_id) return 'Umum';
+      if (!p.membership_id) return 'Everyone';
       const m = get('membership', p.membership_id);
       return m ? customerName(m.customer_id) : '—';
     };
@@ -40,25 +40,25 @@ import { ICONS } from '../lib/icons.ts';
     function edit(p?: Row) {
       const members = all('membership').map((m) => [m.membership_id, customerName(m.customer_id)] as [number, string]);
       const d = openForm({
-        title: p ? `Ubah ${p.code}` : 'Kode promo baru',
+        title: p ? `Edit ${p.code}` : 'New promo code',
         fields: [
-          { name: 'code', label: 'Kode', required: true, placeholder: 'PAYDAY15', help: 'Huruf kapital, angka, tanda hubung.' },
-          { name: 'discount_type', label: 'Jenis diskon', type: 'select', required: true, options: [['percentage', 'Persentase (%)'], ['fixed_amount', 'Nominal (Rp)']] },
-          { name: 'discount_value', label: 'Nilai diskon', type: 'number', required: true, min: 0 },
-          { name: 'max_discount', label: 'Maks. diskon (Rp)', type: 'money', min: 0, help: 'Untuk persentase.' },
-          { name: 'min_purchase', label: 'Min. belanja (Rp)', type: 'money', required: true, min: 0 },
-          { name: 'usage_limit', label: 'Batas pemakaian', type: 'number', min: 1, help: 'Kosong = tanpa batas.' },
-          { name: 'starts_at', label: 'Mulai', type: 'datetime', required: true },
-          { name: 'ends_at', label: 'Berakhir', type: 'datetime', required: true },
-          { name: 'membership_id', label: 'Pemilik (kode personal)', type: 'select', options: members, full: true, help: 'Mis. kode ulang tahun member. Kosong = kode umum.' },
+          { name: 'code', label: 'Code', required: true, placeholder: 'PAYDAY15', help: 'Capital letters, numbers and hyphens.' },
+          { name: 'discount_type', label: 'Discount type', type: 'select', required: true, options: [['percentage', 'Percentage (%)'], ['fixed_amount', 'Fixed amount (Rp)']] },
+          { name: 'discount_value', label: 'Discount value', type: 'number', required: true, min: 0 },
+          { name: 'max_discount', label: 'Max. discount (Rp)', type: 'money', min: 0, help: 'For percentage codes.' },
+          { name: 'min_purchase', label: 'Min. purchase (Rp)', type: 'money', required: true, min: 0 },
+          { name: 'usage_limit', label: 'Usage limit', type: 'number', min: 1, help: 'Leave empty for unlimited.' },
+          { name: 'starts_at', label: 'Starts', type: 'datetime', required: true },
+          { name: 'ends_at', label: 'Ends', type: 'datetime', required: true },
+          { name: 'membership_id', label: 'Personal code for', type: 'select', options: members, full: true, help: 'Optional, e.g. a member birthday code. Leave empty for everyone.' },
         ],
         values: p ?? { discount_type: 'percentage', min_purchase: 0, starts_at: nowLocal() },
-        submit: p ? 'simpan' : 'buat kode',
-        success: p ? 'Kode promo disimpan' : 'Kode promo dibuat',
+        submit: p ? 'save' : 'create code',
+        success: p ? 'Promo code saved' : 'Promo code created',
         onSubmit: (v) => {
           v.code = String(v.code).toUpperCase();
-          if (p) { update('promo_code', p.promo_code_id, v); log('update', 'promo_code', `Ubah kode ${v.code}`); }
-          else { insert('promo_code', v); log('create', 'promo_code', `Buat kode ${v.code}`); }
+          if (p) { update('promo_code', p.promo_code_id, v); log('update', 'promo_code', `Edited promo code ${v.code}`); }
+          else { insert('promo_code', v); log('create', 'promo_code', `Created promo code ${v.code}`); }
         },
       });
       const code = d.querySelector<HTMLInputElement>('[name=code]')!;
@@ -69,24 +69,24 @@ import { ICONS } from '../lib/icons.ts';
       rows: () => all('promo_code'),
       rowKey: (r) => keyOf('promo_code', r),
       search: (r) => `${r.code} ${owner(r)}`,
-      searchPlaceholder: 'Cari kode atau pemilik…',
-      csvName: 'promo_code',
+      searchPlaceholder: 'Search code or owner…',
+      csvName: 'promo-codes',
       defaultSort: { key: 'starts_at', dir: -1 },
       filters: [
-        { key: 'state', label: 'Status', options: [['aktif', 'Aktif'], ['terjadwal', 'Terjadwal'], ['berakhir', 'Berakhir'], ['kuota habis', 'Kuota habis']], test: (r, v) => state(r)[0] === v },
-        { key: 'type', label: 'Jenis', options: [['percentage', 'Persentase'], ['fixed_amount', 'Nominal']], test: (r, v) => r.discount_type === v },
-        { key: 'owner', label: 'Kepemilikan', options: [['public', 'Umum'], ['personal', 'Personal']], test: (r, v) => (v === 'personal') === !!r.membership_id },
+        { key: 'state', label: 'Status', options: [['active', 'Active'], ['scheduled', 'Scheduled'], ['ended', 'Ended'], ['used up', 'Used up']], test: (r, v) => state(r)[0] === v },
+        { key: 'type', label: 'Type', options: [['percentage', 'Percentage'], ['fixed_amount', 'Fixed amount']], test: (r, v) => r.discount_type === v },
+        { key: 'owner', label: 'Audience', options: [['public', 'Everyone'], ['personal', 'Personal']], test: (r, v) => (v === 'personal') === !!r.membership_id },
       ],
       columns: [
-        { key: 'code', label: 'Kode', sort: (r) => r.code, html: (r) => `<b class="mono">${esc(r.code)}</b>`, csv: (r) => r.code },
-        { key: 'discount_value', label: 'Diskon', code: 'discount_type · value', cls: 'num', sort: (r) => r.discount_value, html: (r) => `${value(r)}${r.max_discount ? `<small class="muted"> maks ${rupiah(r.max_discount)}</small>` : ''}`, csv: (r) => `${r.discount_type}:${r.discount_value}` },
-        { key: 'min_purchase', label: 'Min. belanja', cls: 'right num', sort: (r) => r.min_purchase, html: (r) => rupiah(r.min_purchase), csv: (r) => r.min_purchase },
-        { key: 'starts_at', label: 'Periode', code: 'starts_at → ends_at', sort: (r) => r.starts_at, html: (r) => `${dateTime(r.starts_at)}<br><span class="muted">s.d. ${dateTime(r.ends_at)}</span>`, csv: (r) => `${r.starts_at} - ${r.ends_at}` },
-        { key: 'usage', label: 'Dipakai', code: 'usage_limit', cls: 'right num', sort: (r) => used(r), html: (r) => `${number(used(r))}${r.usage_limit ? ` / ${number(r.usage_limit)}` : ''}`, csv: (r) => used(r) },
-        { key: 'membership_id', label: 'Pemilik', sort: (r) => owner(r), html: (r) => (r.membership_id ? esc(owner(r)) : '<span class="muted">Umum</span>'), csv: (r) => owner(r) },
-        { key: 'state', label: 'Status', code: false, sort: (r) => state(r)[0], html: (r) => { const [l, c] = state(r); return `<span class="badge ${c}">${l}</span>`; }, csv: (r) => state(r)[0] },
+        { key: 'code', label: 'Code', sort: (r) => r.code, html: (r) => `<b class="mono">${esc(r.code)}</b>`, csv: (r) => r.code },
+        { key: 'discount_value', label: 'Discount', cls: 'num', sort: (r) => r.discount_value, html: (r) => `${value(r)}${r.max_discount ? `<small class="muted"> up to ${rupiah(r.max_discount)}</small>` : ''}`, csv: (r) => value(r) },
+        { key: 'min_purchase', label: 'Min. purchase', cls: 'right num', sort: (r) => r.min_purchase, html: (r) => rupiah(r.min_purchase), csv: (r) => r.min_purchase },
+        { key: 'starts_at', label: 'Valid', sort: (r) => r.starts_at, html: (r) => `${dateTime(r.starts_at)}<br><span class="muted">until ${dateTime(r.ends_at)}</span>`, csv: (r) => `${r.starts_at} - ${r.ends_at}` },
+        { key: 'usage', label: 'Used', cls: 'right num', sort: (r) => used(r), html: (r) => `${number(used(r))}${r.usage_limit ? ` / ${number(r.usage_limit)}` : ''}`, csv: (r) => used(r) },
+        { key: 'membership_id', label: 'Audience', sort: (r) => owner(r), html: (r) => (r.membership_id ? esc(owner(r)) : '<span class="muted">Everyone</span>'), csv: (r) => owner(r) },
+        { key: 'state', label: 'Status', sort: (r) => state(r)[0], html: (r) => { const [l, c] = state(r); return `<span class="badge ${c}">${l}</span>`; }, csv: (r) => state(r)[0] },
       ],
-      actions: () => rowButtons([{ act: 'edit', label: 'Ubah', ic: 'edit' }, { act: 'del', label: 'Hapus', ic: 'trash' }]),
+      actions: () => rowButtons([{ act: 'edit', label: 'Edit', ic: 'edit' }, { act: 'del', label: 'Delete', ic: 'trash' }]),
       onRow: (r) => edit(r),
     });
 
@@ -96,8 +96,8 @@ import { ICONS } from '../lib/icons.ts';
       if (!b || !row) return;
       if (b.dataset.act === 'edit') edit(row);
       if (b.dataset.act === 'del') {
-        const ok = await confirmDialog({ title: `Hapus ${row.code}?`, body: 'Kode yang sudah dipakai pesanan tidak bisa dihapus (RESTRICT, menjaga histori).', confirm: 'hapus', danger: true });
-        if (ok) attempt(() => { remove('promo_code', row.promo_code_id); log('delete', 'promo_code', `Hapus kode ${row.code}`); }, 'Kode promo dihapus');
+        const ok = await confirmDialog({ title: `Delete ${row.code}?`, body: "Codes that have already been used on orders can't be deleted, so order history stays intact.", confirm: 'delete', danger: true });
+        if (ok) attempt(() => { remove('promo_code', row.promo_code_id); log('delete', 'promo_code', `Deleted promo code ${row.code}`); }, 'Promo code deleted');
       }
     });
     document.querySelector('[data-new]')!.addEventListener('click', () => edit());

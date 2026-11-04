@@ -173,7 +173,7 @@
    {
     "customer_address_id": 1,
     "membership_id": 1,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Rizky Pratama",
     "recipient_phone": "081342069925",
     "street_address": "Jl. Kemang Raya No. 12",
@@ -184,7 +184,7 @@
    {
     "customer_address_id": 2,
     "membership_id": 1,
-    "label": "Kantor",
+    "label": "Office",
     "recipient_name": "Rizky Pratama",
     "recipient_phone": "081342069925",
     "street_address": "Jl. M.H. Thamrin No. 1, Lt. 9",
@@ -195,7 +195,7 @@
    {
     "customer_address_id": 3,
     "membership_id": 2,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Nadia Putri Lestari",
     "recipient_phone": "081231233360",
     "street_address": "Jl. Dago No. 88",
@@ -206,7 +206,7 @@
    {
     "customer_address_id": 4,
     "membership_id": 3,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Andika Saputra",
     "recipient_phone": "081362198083",
     "street_address": "Jl. Raya Darmo No. 45",
@@ -217,7 +217,7 @@
    {
     "customer_address_id": 5,
     "membership_id": 3,
-    "label": "Kantor",
+    "label": "Office",
     "recipient_name": "Andika Saputra",
     "recipient_phone": "081362198083",
     "street_address": "Jl. Jend. Sudirman Kav. 52-53, Lt. 18",
@@ -228,7 +228,7 @@
    {
     "customer_address_id": 6,
     "membership_id": 4,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Clarissa Wijaya",
     "recipient_phone": "085651950570",
     "street_address": "Jl. Puri Indah Blok C/7",
@@ -239,7 +239,7 @@
    {
     "customer_address_id": 7,
     "membership_id": 5,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Bima Ardiansyah",
     "recipient_phone": "081322369446",
     "street_address": "Jl. Kaliurang Km 5 No. 3",
@@ -250,7 +250,7 @@
    {
     "customer_address_id": 8,
     "membership_id": 5,
-    "label": "Kantor",
+    "label": "Office",
     "recipient_name": "Bima Ardiansyah",
     "recipient_phone": "081322369446",
     "street_address": "Jl. HR Rasuna Said Kav. C-22",
@@ -261,7 +261,7 @@
    {
     "customer_address_id": 9,
     "membership_id": 6,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Sekar Ayu Maharani",
     "recipient_phone": "088115972829",
     "street_address": "Jl. Sunset Road No. 9",
@@ -272,7 +272,7 @@
    {
     "customer_address_id": 10,
     "membership_id": 6,
-    "label": "Kantor",
+    "label": "Office",
     "recipient_name": "Sekar Ayu Maharani",
     "recipient_phone": "088115972829",
     "street_address": "Jl. Jend. Sudirman Kav. 52-53, Lt. 18",
@@ -283,7 +283,7 @@
    {
     "customer_address_id": 11,
     "membership_id": 7,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Michelle Tanoto",
     "recipient_phone": "087737089873",
     "street_address": "Jl. Boulevard Gading Serpong No. 18",
@@ -294,7 +294,7 @@
    {
     "customer_address_id": 12,
     "membership_id": 7,
-    "label": "Kantor",
+    "label": "Office",
     "recipient_name": "Michelle Tanoto",
     "recipient_phone": "087737089873",
     "street_address": "Jl. M.H. Thamrin No. 1, Lt. 9",
@@ -305,7 +305,7 @@
    {
     "customer_address_id": 13,
     "membership_id": 8,
-    "label": "Rumah",
+    "label": "Home",
     "recipient_name": "Jonathan Gunawan",
     "recipient_phone": "087780622641",
     "street_address": "Jl. Pluit Karang Ayu No. 4",
@@ -1178,7 +1178,7 @@
     "phone": "0216736201",
     "latitude": -6.2276,
     "longitude": 106.7972,
-    "opening_hours": "Senin–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Sun 10:00–22:00"
    },
    {
     "store_id": 2,
@@ -1191,7 +1191,7 @@
     "phone": "0215203904",
     "latitude": -6.8893,
     "longitude": 107.5961,
-    "opening_hours": "Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00"
    },
    {
     "store_id": 3,
@@ -1204,7 +1204,7 @@
     "phone": "0215204898",
     "latitude": -7.2621,
     "longitude": 112.7386,
-    "opening_hours": "Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00"
    },
    {
     "store_id": 4,
@@ -1217,7 +1217,7 @@
     "phone": "0215571068",
     "latitude": -6.1095,
     "longitude": 106.7395,
-    "opening_hours": "Senin–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Sun 10:00–22:00"
    },
    {
     "store_id": 5,
@@ -1230,7 +1230,7 @@
     "phone": "0215411483",
     "latitude": -7.7925,
     "longitude": 110.3658,
-    "opening_hours": "Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00"
    },
    {
     "store_id": 6,
@@ -1243,7 +1243,7 @@
     "phone": "0215879950",
     "latitude": -8.7177,
     "longitude": 115.1693,
-    "opening_hours": "Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00"
    },
    {
     "store_id": 7,
@@ -1256,7 +1256,7 @@
     "phone": "0215005302",
     "latitude": -6.1951,
     "longitude": 106.8198,
-    "opening_hours": "Senin–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Sun 10:00–22:00"
    },
    {
     "store_id": 8,
@@ -1269,7 +1269,7 @@
     "phone": "0215234606",
     "latitude": -6.2412,
     "longitude": 106.6283,
-    "opening_hours": "Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00"
    },
    {
     "store_id": 9,
@@ -1282,7 +1282,7 @@
     "phone": "0215275924",
     "latitude": 3.5952,
     "longitude": 98.6722,
-    "opening_hours": "Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00"
    },
    {
     "store_id": 10,
@@ -1295,7 +1295,7 @@
     "phone": "0217659199",
     "latitude": -5.1604,
     "longitude": 119.3946,
-    "opening_hours": "Senin–Minggu 10.00–22.00"
+    "opening_hours": "Mon–Sun 10:00–22:00"
    }
   ],
   "orders": [
@@ -2491,64 +2491,64 @@
     "customer_id": 5,
     "product_id": 32,
     "rating": 5,
-    "title": "Dingin seharian, mantap",
-    "comment": "Es batu masih ada sampai sore padahal dibawa ke kantor dari pagi. Tutup FlowState tidak bocor di tas.",
+    "title": "Ice-cold all day",
+    "comment": "Ice was still there by late afternoon after taking it to the office in the morning. The FlowState lid never leaked in my bag.",
     "created_at": "2026-09-15T22:18"
    },
    {
     "customer_id": 5,
     "product_id": 13,
     "rating": 5,
-    "title": "Warna cantik banget",
-    "comment": "Warnanya persis di foto, finishing-nya halus. Pas di cup holder mobil.",
+    "title": "Gorgeous color",
+    "comment": "The color is exactly like the photos and the finish is smooth. Fits my car cup holder.",
     "created_at": "2026-09-16T11:35"
    },
    {
     "customer_id": 9,
     "product_id": 11,
     "rating": 4,
-    "title": "Bagus, agak berat",
-    "comment": "Kualitas top seperti biasa, tapi kalau penuh lumayan berat untuk dibawa jalan jauh.",
+    "title": "Great, a little heavy",
+    "comment": "Top quality as always, but it gets heavy when full on long walks.",
     "created_at": "2026-09-21T07:22"
    },
    {
     "customer_id": 9,
     "product_id": 38,
     "rating": 5,
-    "title": "Pengiriman cepat",
-    "comment": "Dikemas rapi pakai bubble wrap tebal, sampai dua hari. Barang original.",
+    "title": "Fast delivery",
+    "comment": "Packed neatly with thick bubble wrap and arrived in two days. Genuine product.",
     "created_at": "2026-09-26T01:40"
    },
    {
     "customer_id": 9,
     "product_id": 43,
     "rating": 3,
-    "title": "Sedotan agak susah dibersihkan",
-    "comment": "Botolnya oke, cuma sedotan perlu sikat khusus. Semoga ada aksesoris sikatnya.",
+    "title": "Straw is hard to clean",
+    "comment": "The tumbler is fine, but the straw needs a special brush. Hope a cleaning brush gets added.",
     "created_at": "2026-09-23T00:18"
    },
    {
     "customer_id": 9,
     "product_id": 12,
     "rating": 4,
-    "title": "Kopi tetap panas",
-    "comment": "Kopi pagi masih hangat sampai jam makan siang. Pegangannya nyaman.",
+    "title": "Keeps coffee hot",
+    "comment": "My morning coffee is still warm at lunch. The handle is comfortable.",
     "created_at": "2026-09-23T03:56"
    },
    {
     "customer_id": 12,
     "product_id": 38,
     "rating": 5,
-    "title": "Hadiah ulang tahun",
-    "comment": "Beli untuk kado, yang menerima senang sekali. Box-nya juga premium.",
+    "title": "Perfect birthday gift",
+    "comment": "Bought it as a gift and they loved it. The box feels premium too.",
     "created_at": "2026-09-23T03:09"
    },
    {
     "customer_id": 12,
     "product_id": 41,
     "rating": 2,
-    "title": "Ada baret kecil",
-    "comment": "Datang dengan baret halus di bagian bawah. CS responsif, tapi agak kecewa.",
+    "title": "Arrived with a scratch",
+    "comment": "There was a small scratch on the bottom. Support was quick to reply, but a bit disappointing.",
     "created_at": "2026-09-23T22:26"
    },
    {
@@ -2556,55 +2556,55 @@
     "product_id": 25,
     "rating": 5,
     "title": "Worth it",
-    "comment": "Harga memang premium, tapi kualitasnya terasa. Sudah tiga bulan dipakai setiap hari.",
+    "comment": "Premium price, but you can feel the quality. Used it every day for three months.",
     "created_at": "2026-09-27T03:19"
    },
    {
     "customer_id": 9,
     "product_id": 33,
     "rating": 4,
-    "title": "Pas untuk naik gunung",
-    "comment": "Dibawa ke Prau, air tetap dingin. Tutupnya rapat.",
+    "title": "Great for hiking",
+    "comment": "Took it up Mount Prau and the water stayed cold. The lid seals tight.",
     "created_at": "2026-09-26T19:07"
    },
    {
     "customer_id": 9,
     "product_id": 41,
     "rating": 5,
-    "title": "Dingin seharian, mantap",
-    "comment": "Es batu masih ada sampai sore padahal dibawa ke kantor dari pagi. Tutup FlowState tidak bocor di tas.",
+    "title": "Ice-cold all day",
+    "comment": "Ice was still there by late afternoon after taking it to the office in the morning. The FlowState lid never leaked in my bag.",
     "created_at": "2026-09-29T22:00"
    },
    {
     "customer_id": 7,
     "product_id": 17,
     "rating": 5,
-    "title": "Warna cantik banget",
-    "comment": "Warnanya persis di foto, finishing-nya halus. Pas di cup holder mobil.",
+    "title": "Gorgeous color",
+    "comment": "The color is exactly like the photos and the finish is smooth. Fits my car cup holder.",
     "created_at": "2026-10-08T21:16"
    },
    {
     "customer_id": 4,
     "product_id": 41,
     "rating": 4,
-    "title": "Bagus, agak berat",
-    "comment": "Kualitas top seperti biasa, tapi kalau penuh lumayan berat untuk dibawa jalan jauh.",
+    "title": "Great, a little heavy",
+    "comment": "Top quality as always, but it gets heavy when full on long walks.",
     "created_at": "2026-10-09T14:01"
    },
    {
     "customer_id": 1,
     "product_id": 30,
     "rating": 5,
-    "title": "Pengiriman cepat",
-    "comment": "Dikemas rapi pakai bubble wrap tebal, sampai dua hari. Barang original.",
+    "title": "Fast delivery",
+    "comment": "Packed neatly with thick bubble wrap and arrived in two days. Genuine product.",
     "created_at": "2026-10-15T10:26"
    },
    {
     "customer_id": 11,
     "product_id": 22,
     "rating": 3,
-    "title": "Sedotan agak susah dibersihkan",
-    "comment": "Botolnya oke, cuma sedotan perlu sikat khusus. Semoga ada aksesoris sikatnya.",
+    "title": "Straw is hard to clean",
+    "comment": "The tumbler is fine, but the straw needs a special brush. Hope a cleaning brush gets added.",
     "created_at": "2026-10-18T17:23"
    }
   ],
@@ -2623,7 +2623,7 @@
     "replacement_order_id": null,
     "claim_number": "WC-2610-0001",
     "date_code": "B247",
-    "issue_description": "Tutup FlowState retak di bagian engsel setelah jatuh dari meja; air merembes saat dimiringkan.",
+    "issue_description": "The FlowState lid cracked at the hinge after a fall from the table; water leaks when tilted.",
     "status": "submitted",
     "rejection_reason": null,
     "submitted_at": "2026-10-23T14:01",
@@ -2643,7 +2643,7 @@
     "replacement_order_id": null,
     "claim_number": "WC-2611-0002",
     "date_code": "D490",
-    "issue_description": "Fungsi vakum hilang: minuman panas jadi dingin dalam satu jam dan dinding luar ikut panas.",
+    "issue_description": "Lost its vacuum seal: hot drinks go cold within an hour and the outside wall gets hot.",
     "status": "under_review",
     "rejection_reason": null,
     "submitted_at": "2026-11-02T18:50",
@@ -2663,9 +2663,9 @@
     "replacement_order_id": null,
     "claim_number": "WC-2610-0003",
     "date_code": "B689",
-    "issue_description": "Cat powder coat mengelupas di dasar botol meski hanya dicuci dengan tangan.",
+    "issue_description": "The powder coat is peeling at the base even though it was only hand-washed.",
     "status": "rejected",
-    "rejection_reason": "Kerusakan akibat pemakaian di mesin pencuci piring pada produk yang tidak dishwasher safe; tidak termasuk cakupan garansi.",
+    "rejection_reason": "Damage caused by washing a non-dishwasher-safe product in a dishwasher, which the warranty does not cover.",
     "submitted_at": "2026-10-31T09:30",
     "resolved_at": "2026-11-02T09:30"
    },
@@ -2683,7 +2683,7 @@
     "replacement_order_id": null,
     "claim_number": "WC-2610-0004",
     "date_code": "B114",
-    "issue_description": "Pegangan longgar dan berbunyi, sekrup tidak bisa dikencangkan lagi.",
+    "issue_description": "The handle is loose and rattles; the screw no longer tightens.",
     "status": "submitted",
     "rejection_reason": null,
     "submitted_at": "2026-10-26T18:55",
@@ -2703,7 +2703,7 @@
     "replacement_order_id": null,
     "claim_number": "WC-2610-0005",
     "date_code": "A132",
-    "issue_description": "Gasket tutup sobek sehingga botol bocor walau tutup sudah dikunci.",
+    "issue_description": "The lid gasket is torn, so the bottle leaks even when the lid is locked.",
     "status": "under_review",
     "rejection_reason": null,
     "submitted_at": "2026-10-15T11:39",
@@ -2723,7 +2723,7 @@
     "replacement_order_id": null,
     "claim_number": "WC-2610-0006",
     "date_code": "D667",
-    "issue_description": "Penyok di badan tumbler membuat sedotan tidak bisa masuk penuh.",
+    "issue_description": "A dent in the tumbler body stops the straw from going all the way in.",
     "status": "submitted",
     "rejection_reason": null,
     "submitted_at": "2026-10-25T11:55",

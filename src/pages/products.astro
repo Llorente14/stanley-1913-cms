@@ -3,14 +3,14 @@ import AdminLayout from '../layouts/AdminLayout.astro';
 import { ICONS } from '../lib/icons.ts';
 ---
 
-<AdminLayout title="Produk" active="products" crumbs={[{ label: 'Katalog' }, { label: 'Produk' }]}>
+<AdminLayout title="Products" active="products" crumbs={[{ label: 'Catalog' }, { label: 'Products' }]}>
   <div class="page-head">
     <div>
-      <h1>Produk</h1>
-      <p class="lead">Relasi <code>Product</code>: satu baris per SKU (warna + ukuran) dengan harga, stok, dan gambar sendiri.</p>
+      <h1>Products</h1>
+      <p class="lead">Every color and size is listed separately with its own SKU, price, stock and photo.</p>
     </div>
     <div class="actions">
-      <button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> tambah produk</button>
+      <button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> add product</button>
     </div>
   </div>
   <section data-table></section>
@@ -30,35 +30,35 @@ import { ICONS } from '../lib/icons.ts';
         .sort((a, b) => a[1].localeCompare(b[1]));
 
     const fields = (): FieldDef[] => [
-      { name: 'name', label: 'Nama produk', required: true, full: true, placeholder: 'The Quencher H2.0 FlowState Tumbler' },
-      { name: 'sku', label: 'SKU', required: true, help: 'Alternate key, harus unik.' },
-      { name: 'category_id', label: 'Kategori', type: 'select', required: true, options: catOptions() },
-      { name: 'color', label: 'Warna', required: true, placeholder: 'Rose Quartz' },
-      { name: 'size', label: 'Ukuran', required: true, placeholder: '40 OZ' },
-      { name: 'price', label: 'Harga (Rp)', type: 'money', required: true, min: 0 },
-      { name: 'compare_at_price', label: 'Harga coret (Rp)', type: 'money', min: 0, help: 'Isi bila produk sedang Sale. Harus > harga.' },
-      { name: 'stock_qty', label: 'Stok', type: 'number', required: true, min: 0 },
-      { name: 'image_url', label: 'Gambar', type: 'image' },
-      { name: 'description', label: 'Deskripsi', type: 'textarea', full: true },
-      { name: 'is_promo_eligible', label: 'Boleh memakai kode promo', type: 'checkbox' },
-      { name: 'is_active', label: 'Tampil di toko (aktif)', type: 'checkbox' },
+      { name: 'name', label: 'Product name', required: true, full: true, placeholder: 'The Quencher H2.0 FlowState Tumbler' },
+      { name: 'sku', label: 'SKU', required: true, help: 'Must be unique.' },
+      { name: 'category_id', label: 'Category', type: 'select', required: true, options: catOptions() },
+      { name: 'color', label: 'Color', required: true, placeholder: 'Rose Quartz' },
+      { name: 'size', label: 'Size', required: true, placeholder: '40 OZ' },
+      { name: 'price', label: 'Price (Rp)', type: 'money', required: true, min: 0 },
+      { name: 'compare_at_price', label: 'Compare-at price (Rp)', type: 'money', min: 0, help: 'Fill in when the product is on sale. Must be higher than the price.' },
+      { name: 'stock_qty', label: 'Stock', type: 'number', required: true, min: 0 },
+      { name: 'image_url', label: 'Image', type: 'image' },
+      { name: 'description', label: 'Description', type: 'textarea', full: true },
+      { name: 'is_promo_eligible', label: 'Promo codes can be used', type: 'checkbox' },
+      { name: 'is_active', label: 'Visible in the store', type: 'checkbox' },
     ];
 
     function edit(p?: Row) {
       openForm({
-        title: p ? `Ubah produk` : 'Tambah produk',
-        subtitle: p ? `<code>product_id = ${p.product_id}</code> · ${esc(p.sku)}` : 'Baris baru di relasi Product.',
+        title: p ? 'Edit product' : 'Add product',
+        subtitle: p ? `${esc(p.name)} · ${esc(p.color)}` : undefined,
         fields: fields(),
         values: p ?? { is_active: true, is_promo_eligible: true, stock_qty: 0 },
-        submit: p ? 'simpan perubahan' : 'tambah produk',
-        success: p ? 'Produk disimpan' : 'Produk ditambahkan',
+        submit: p ? 'save changes' : 'add product',
+        success: p ? 'Product saved' : 'Product added',
         onSubmit: (v) => {
           if (p) {
             update('product', p.product_id, v);
-            log('update', 'product', `Ubah produk ${v.sku}`);
+            log('update', 'product', `Edited product ${v.name} (${v.sku})`);
           } else {
             const r = insert('product', v);
-            log('create', 'product', `Tambah produk ${r.sku}`);
+            log('create', 'product', `Added product ${r.name} (${r.sku})`);
           }
         },
       });
@@ -67,30 +67,29 @@ import { ICONS } from '../lib/icons.ts';
     async function del(p: Row) {
       const reviews = where('review', (r) => r.product_id === p.product_id).length;
       const ok = await confirmDialog({
-        title: 'Hapus produk?',
-        body: `<b>${esc(p.name)}</b> · ${esc(p.sku)}.${reviews ? ` ${reviews} ulasan ikut terhapus (ON DELETE CASCADE).` : ''} Produk yang pernah dipesan tidak bisa dihapus (RESTRICT); nonaktifkan saja.`,
-        confirm: 'hapus',
+        title: 'Delete product?',
+        body: `<b>${esc(p.name)}</b> · ${esc(p.color)}.${reviews ? ` Its ${reviews} review${reviews > 1 ? 's' : ''} will also be removed.` : ''} Products that have been ordered can't be deleted — hide them from the store instead.`,
+        confirm: 'delete',
         danger: true,
       });
       if (!ok) return;
       attempt(() => {
-        const plan = remove('product', p.product_id);
-        log('delete', 'product', `Hapus produk ${p.sku}`);
-        return plan.remove.length > 1 ? [`${plan.remove.length - 1} baris terkait ikut terhapus`] : [];
-      }, 'Produk dihapus');
+        remove('product', p.product_id);
+        log('delete', 'product', `Deleted product ${p.name} (${p.sku})`);
+      }, 'Product deleted');
     }
 
     const t = mountTable(document.querySelector('[data-table]')!, {
       rows: () => all('product'),
       rowKey: (r) => keyOf('product', r),
       search: (r) => `${r.name} ${r.sku} ${r.color} ${r.size}`,
-      searchPlaceholder: 'Cari nama, SKU, warna…',
-      csvName: 'product',
+      searchPlaceholder: 'Search name, SKU, color…',
+      csvName: 'products',
       defaultSort: { key: 'name', dir: 1 },
       filters: [
         {
           key: 'category',
-          label: 'Kategori',
+          label: 'Category',
           options: all('category').map((c) => [String(c.category_id), categoryPath(c.category_id)] as [string, string]).sort((a, b) => a[1].localeCompare(b[1])),
           test: (r, v) => {
             let c = get('category', r.category_id);
@@ -101,30 +100,30 @@ import { ICONS } from '../lib/icons.ts';
             return false;
           },
         },
-        { key: 'stock', label: 'Stok', options: [['low', 'Rendah (≤ 5)'], ['out', 'Habis'], ['ok', 'Aman']], test: (r, v) => (v === 'out' ? r.stock_qty === 0 : v === 'low' ? r.stock_qty <= 5 : r.stock_qty > 5) },
-        { key: 'active', label: 'Status', options: [['1', 'Aktif'], ['0', 'Nonaktif']], test: (r, v) => String(Number(r.is_active)) === v },
-        { key: 'sale', label: 'Harga', options: [['sale', 'Sedang sale'], ['normal', 'Normal']], test: (r, v) => (v === 'sale') === (r.compare_at_price != null) },
+        { key: 'stock', label: 'Stock', options: [['low', 'Low (5 or less)'], ['out', 'Out of stock'], ['ok', 'In stock']], test: (r, v) => (v === 'out' ? r.stock_qty === 0 : v === 'low' ? r.stock_qty <= 5 : r.stock_qty > 5) },
+        { key: 'active', label: 'Status', options: [['1', 'Active'], ['0', 'Hidden']], test: (r, v) => String(Number(r.is_active)) === v },
+        { key: 'sale', label: 'Price', options: [['sale', 'On sale'], ['normal', 'Regular price']], test: (r, v) => (v === 'sale') === (r.compare_at_price != null) },
       ],
       columns: [
         {
-          key: 'name', label: 'Produk', code: 'name · sku', sort: (r) => r.name + r.color,
+          key: 'name', label: 'Product', sort: (r) => r.name + r.color,
           html: (r) => `<div class="cell-prod">${r.image_url ? `<img src="${esc(r.image_url)}" alt="" loading="lazy" width="44" height="44">` : '<span class="thumb"></span>'}<div><b>${esc(r.name)}</b><small>${esc(r.color)} · ${esc(r.size)} · <span class="mono">${esc(r.sku)}</span></small></div></div>`,
           csv: (r) => r.name,
         },
         { key: 'sku', label: 'SKU', hidden: true, html: () => '', csv: (r) => r.sku },
-        { key: 'color', label: 'Warna', hidden: true, html: () => '', csv: (r) => r.color },
-        { key: 'size', label: 'Ukuran', hidden: true, html: () => '', csv: (r) => r.size },
-        { key: 'category_id', label: 'Kategori', sort: (r) => categoryPath(r.category_id), html: (r) => esc(categoryPath(r.category_id)), csv: (r) => categoryPath(r.category_id) },
+        { key: 'color', label: 'Color', hidden: true, html: () => '', csv: (r) => r.color },
+        { key: 'size', label: 'Size', hidden: true, html: () => '', csv: (r) => r.size },
+        { key: 'category_id', label: 'Category', sort: (r) => categoryPath(r.category_id), html: (r) => esc(categoryPath(r.category_id)), csv: (r) => categoryPath(r.category_id) },
         {
-          key: 'price', label: 'Harga', cls: 'right num', sort: (r) => r.price,
+          key: 'price', label: 'Price', cls: 'right num', sort: (r) => r.price,
           html: (r) => (r.compare_at_price ? `<span class="strike">${rupiah(r.compare_at_price)}</span><span class="sale">${rupiah(r.price)}</span>` : rupiah(r.price)),
           csv: (r) => r.price,
         },
-        { key: 'stock_qty', label: 'Stok', cls: 'right num', sort: (r) => r.stock_qty, html: (r) => (r.stock_qty === 0 ? '<span class="badge bad">habis</span>' : r.stock_qty <= 5 ? `<span class="badge warn">${r.stock_qty}</span>` : number(r.stock_qty)), csv: (r) => r.stock_qty },
-        { key: 'is_promo_eligible', label: 'Promo', sort: (r) => Number(r.is_promo_eligible), html: (r) => (r.is_promo_eligible && !r.compare_at_price ? '<span class="badge plain">boleh</span>' : '<span class="muted">tidak</span>'), csv: (r) => r.is_promo_eligible },
-        { key: 'is_active', label: 'Status', sort: (r) => Number(r.is_active), html: (r) => (r.is_active ? '<span class="badge ok">aktif</span>' : '<span class="badge">nonaktif</span>'), csv: (r) => r.is_active },
+        { key: 'stock_qty', label: 'Stock', cls: 'right num', sort: (r) => r.stock_qty, html: (r) => (r.stock_qty === 0 ? '<span class="badge bad">sold out</span>' : r.stock_qty <= 5 ? `<span class="badge warn">${r.stock_qty}</span>` : number(r.stock_qty)), csv: (r) => r.stock_qty },
+        { key: 'is_promo_eligible', label: 'Promo', sort: (r) => Number(r.is_promo_eligible), html: (r) => (r.is_promo_eligible && !r.compare_at_price ? '<span class="badge plain">allowed</span>' : '<span class="muted">no</span>'), csv: (r) => (r.is_promo_eligible ? 'yes' : 'no') },
+        { key: 'is_active', label: 'Status', sort: (r) => Number(r.is_active), html: (r) => (r.is_active ? '<span class="badge ok">active</span>' : '<span class="badge">hidden</span>'), csv: (r) => (r.is_active ? 'active' : 'hidden') },
       ],
-      actions: () => rowButtons([{ act: 'edit', label: 'Ubah', ic: 'edit' }, { act: 'del', label: 'Hapus', ic: 'trash' }]),
+      actions: () => rowButtons([{ act: 'edit', label: 'Edit', ic: 'edit' }, { act: 'del', label: 'Delete', ic: 'trash' }]),
       onRow: (r) => edit(r),
     });
 

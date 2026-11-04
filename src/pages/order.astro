@@ -2,7 +2,7 @@
 import AdminLayout from '../layouts/AdminLayout.astro';
 ---
 
-<AdminLayout title="Detail pesanan" active="orders" crumbs={[{ label: 'Penjualan' }, { label: 'Pesanan', href: '/orders' }, { label: 'Detail' }]}>
+<AdminLayout title="Order details" active="orders" crumbs={[{ label: 'Sales' }, { label: 'Orders', href: '/orders' }, { label: 'Details' }]}>
   <div data-root class="stack"></div>
 
   <script>
@@ -20,15 +20,15 @@ import AdminLayout from '../layouts/AdminLayout.astro';
 
     function steps(o: any, sh: any) {
       if (o.status === 'cancelled')
-        return `<ol class="steps"><li class="done"><b>Dipesan</b>${dateTime(o.ordered_at)}</li><li class="stop"><b>Dibatalkan</b>stok dikembalikan</li></ol>`;
+        return `<ol class="steps"><li class="done"><b>Ordered</b>${dateTime(o.ordered_at)}</li><li class="stop"><b>Cancelled</b>stock returned</li></ol>`;
       const order = ['pending', 'confirmed', 'shipped', 'completed'];
       const cur = o.status === 'confirmed' && sh?.status === 'shipped' ? 'shipped' : o.status;
       const idx = order.indexOf(cur);
       const label: Record<string, [string, string]> = {
-        pending: ['Menunggu bayar', dateTime(o.ordered_at)],
-        confirmed: ['Dikonfirmasi', 'lunas, dikemas'],
-        shipped: ['Dikirim', sh?.shipped_at ? dateTime(sh.shipped_at) : 'menunggu resi'],
-        completed: ['Selesai', sh?.delivered_at ? dateTime(sh.delivered_at) : 'diterima'],
+        pending: ['Awaiting payment', dateTime(o.ordered_at)],
+        confirmed: ['Confirmed', 'paid, packing'],
+        shipped: ['Shipped', sh?.shipped_at ? dateTime(sh.shipped_at) : 'on the way'],
+        completed: ['Completed', sh?.delivered_at ? dateTime(sh.delivered_at) : 'delivered'],
       };
       return `<ol class="steps">${order.map((s, i) => `<li class="${i < idx ? 'done' : i === idx ? 'now' : ''}"><b>${label[s][0]}</b>${i <= idx ? label[s][1] : '&nbsp;'}</li>`).join('')}</ol>`;
     }
@@ -36,7 +36,7 @@ import AdminLayout from '../layouts/AdminLayout.astro';
     function render() {
       const o = get('orders', id);
       if (!o) {
-        root.innerHTML = `<div class="panel"><div class="empty">${icon('inbox')}<span>Pesanan #${esc(id)} tidak ditemukan.</span><a class="c-btn c-btn--outline c-btn--sm" href="/orders">kembali ke daftar</a></div></div>`;
+        root.innerHTML = `<div class="panel"><div class="empty">${icon('inbox')}<span>This order could not be found.</span><a class="c-btn c-btn--outline c-btn--sm" href="/orders">back to orders</a></div></div>`;
         return;
       }
       const c = get('customer', o.customer_id)!;
@@ -55,82 +55,81 @@ import AdminLayout from '../layouts/AdminLayout.astro';
       <div class="page-head">
         <div>
           <h1>${esc(o.order_number)}</h1>
-          <p class="lead">${dateTime(o.ordered_at)} · ${badge(o.status)} ${o.order_type === 'warranty_replacement' ? '<span class="badge plain">pengganti garansi</span>' : ''} <code>order_id = ${o.order_id}</code></p>
+          <p class="lead">${dateTime(o.ordered_at)} · ${badge(o.status)} ${o.order_type === 'warranty_replacement' ? '<span class="badge plain">warranty replacement</span>' : ''}</p>
         </div>
         <div class="actions">
-          ${canCancel ? `<button class="c-btn c-btn--outline" data-act="cancel">${icon('ban')} batalkan pesanan</button>` : ''}
+          ${canCancel ? `<button class="c-btn c-btn--outline" data-act="cancel">${icon('ban')} cancel order</button>` : ''}
         </div>
       </div>
       ${steps(o, sh)}
       <div class="grid-2">
-        <div style="display:grid;gap:24px">
+        <div class="stack">
           <section class="panel">
-            <div class="panel-head"><h2>Item pesanan</h2><span class="muted mono">order_item</span></div>
-            <div class="table-wrap"><table class="data"><thead><tr><th>Produk</th><th class="right">Qty<span class="col">quantity</span></th><th class="right">Harga satuan<span class="col">unit_price</span></th><th class="right">Subtotal</th></tr></thead><tbody>
-            ${items.map((i) => { const pr = get('product', i.product_id)!; return `<tr><td><div class="cell-prod">${pr.image_url ? `<img src="${esc(pr.image_url)}" alt="" width="44" height="44">` : ''}<div><b>${esc(pr.name)}</b><small>${esc(pr.color)} · ${esc(pr.size)} · <span class="mono">${esc(pr.sku)}</span></small></div></div></td><td class="right num">${i.quantity}</td><td class="right num">${rupiah(i.unit_price)}${i.unit_price !== pr.price && o.order_type === 'regular' ? `<small class="muted" style="display:block">harga kini ${rupiah(pr.price)}</small>` : ''}</td><td class="right num">${rupiah(i.quantity * i.unit_price)}</td></tr>`; }).join('')}
+            <div class="panel-head"><h2>Items</h2></div>
+            <div class="table-wrap"><table class="data"><thead><tr><th>Product</th><th class="right">Qty</th><th class="right">Unit price</th><th class="right">Subtotal</th></tr></thead><tbody>
+            ${items.map((i) => { const pr = get('product', i.product_id)!; return `<tr><td><div class="cell-prod">${pr.image_url ? `<img src="${esc(pr.image_url)}" alt="" width="44" height="44">` : ''}<div><b>${esc(pr.name)}</b><small>${esc(pr.color)} · ${esc(pr.size)} · <span class="mono">${esc(pr.sku)}</span></small></div></div></td><td class="right num">${i.quantity}</td><td class="right num">${rupiah(i.unit_price)}${i.unit_price !== pr.price && o.order_type === 'regular' ? `<small class="muted" style="display:block">now ${rupiah(pr.price)}</small>` : ''}</td><td class="right num">${rupiah(i.quantity * i.unit_price)}</td></tr>`; }).join('')}
             </tbody></table></div>
             <div class="panel-body">
               <div class="totals">
                 <div><span>Subtotal</span><span>${rupiah(orderSubtotal(id))}</span></div>
-                <div><span>Diskon ${promo ? `<code>${esc(promo.code)}</code>` : ''}</span><span>− ${rupiah(o.discount_amount)}</span></div>
-                <div><span>Ongkir</span><span>${rupiah(o.shipping_cost)}</span></div>
+                <div><span>Discount ${promo ? `<code>${esc(promo.code)}</code>` : ''}</span><span>− ${rupiah(o.discount_amount)}</span></div>
+                <div><span>Shipping</span><span>${rupiah(o.shipping_cost)}</span></div>
                 <div class="grand"><span>Total</span><span>${rupiah(total)}</span></div>
-                ${p && p.amount !== total ? `<div class="sale"><span>payment.amount berbeda</span><span>${rupiah(p.amount)}</span></div>` : ''}
               </div>
             </div>
           </section>
 
           <section class="panel">
             <div class="panel-head"><h2>Payment</h2>${p ? badge(p.status) : ''}</div>
-            <div class="panel-body" style="display:grid;gap:16px">
+            <div class="panel-body stack" style="gap:16px">
               ${p ? `<dl class="dl">
-                <dt>Metode</dt><dd>${enumLabel(p.method)}</dd>
-                <dt>Jumlah</dt><dd class="num">${rupiah(p.amount)}</dd>
-                <dt>No. referensi</dt><dd class="mono">${esc(p.reference_no)}</dd>
-                <dt>Dibayar</dt><dd>${dateTime(p.paid_at)}</dd></dl>
+                <dt>Method</dt><dd>${enumLabel(p.method)}</dd>
+                <dt>Amount</dt><dd class="num">${rupiah(p.amount)}</dd>
+                <dt>Reference</dt><dd class="mono">${esc(p.reference_no)}</dd>
+                <dt>Paid on</dt><dd>${dateTime(p.paid_at)}</dd></dl>
                 ${p.status === 'pending' || p.status === 'failed' ? `<div class="inline-actions">
-                  <button class="c-btn c-btn--sm" data-pay="paid">${icon('check')} tandai lunas</button>
-                  ${p.status === 'pending' ? `<button class="c-btn c-btn--outline c-btn--sm" data-pay="failed">gagal</button>` : ''}
-                  <button class="c-btn c-btn--outline c-btn--sm" data-pay="expired">kedaluwarsa (24 jam)</button></div>
-                  <p class="note">Lunas → pesanan <i>confirmed</i> dan shipment <i>packed</i>. Kedaluwarsa → pesanan dibatalkan dan stok kembali.</p>` : ''}`
-                : '<p class="muted">Pesanan pengganti garansi bernilai Rp0 dan tidak memiliki Payment (relasi 1 : 0..1).</p>'}
+                  <button class="c-btn c-btn--sm" data-pay="paid">${icon('check')} mark as paid</button>
+                  ${p.status === 'pending' ? `<button class="c-btn c-btn--outline c-btn--sm" data-pay="failed">mark as failed</button>` : ''}
+                  <button class="c-btn c-btn--outline c-btn--sm" data-pay="expired">mark as expired</button></div>
+                  <p class="note">Once paid, the order is confirmed and ready to pack. Expired payments cancel the order and return the stock.</p>` : ''}`
+                : '<p class="muted">Warranty replacements are free, so there is no payment.</p>'}
             </div>
           </section>
         </div>
 
-        <div style="display:grid;gap:24px">
+        <div class="stack">
           <section class="panel">
             <div class="panel-head"><h2>Customer</h2>${m ? `<span class="tier ${m.tier}">${enumLabel(m.tier)}</span>` : '<span class="badge plain">Guest</span>'}</div>
             <div class="panel-body"><dl class="dl">
-              <dt>Nama</dt><dd><a href="/customer?id=${c.customer_id}">${esc(c.full_name)}</a></dd>
+              <dt>Name</dt><dd><a href="/customer?id=${c.customer_id}">${esc(c.full_name)}</a></dd>
               <dt>Email</dt><dd>${esc(c.email)}</dd>
-              <dt>Telepon</dt><dd class="num">${esc(c.phone)}</dd>
-              ${m && o.order_type === 'regular' ? `<dt>Poin pesanan</dt><dd class="num">${number(pointsFor(total))} poin ${o.status === 'completed' ? '(sudah dicatat)' : '(dicatat saat diterima)'}</dd>` : ''}
+              <dt>Phone</dt><dd class="num">${esc(c.phone)}</dd>
+              ${m && o.order_type === 'regular' ? `<dt>Club points</dt><dd class="num">${number(pointsFor(total))} points ${o.status === 'completed' ? '(added)' : '(added on delivery)'}</dd>` : ''}
             </dl></div>
           </section>
 
           <section class="panel">
-            <div class="panel-head"><h2>Shipment</h2>${sh ? badge(sh.status) : ''}</div>
-            <div class="panel-body" style="display:grid;gap:16px">
+            <div class="panel-head"><h2>Shipping</h2>${sh ? badge(sh.status) : ''}</div>
+            <div class="panel-body stack" style="gap:16px">
               ${sh ? `<dl class="dl">
-                <dt>Layanan</dt><dd>${enumLabel(sh.shipping_service)}</dd>
-                <dt>Penerima</dt><dd>${esc(sh.recipient_name)} · <span class="num">${esc(sh.recipient_phone)}</span></dd>
-                <dt>Alamat</dt><dd>${esc(sh.street_address)}, ${esc(sh.city)}, ${esc(sh.province)} ${esc(sh.postal_code)}</dd>
-                <dt>No. resi</dt><dd class="mono">${esc(sh.tracking_number ?? '—')}</dd>
-                <dt>Dikirim</dt><dd>${dateTime(sh.shipped_at)}</dd>
-                <dt>Diterima</dt><dd>${dateTime(sh.delivered_at)}</dd></dl>
+                <dt>Courier</dt><dd>${enumLabel(sh.shipping_service)}</dd>
+                <dt>Recipient</dt><dd>${esc(sh.recipient_name)} · <span class="num">${esc(sh.recipient_phone)}</span></dd>
+                <dt>Address</dt><dd>${esc(sh.street_address)}, ${esc(sh.city)}, ${esc(sh.province)} ${esc(sh.postal_code)}</dd>
+                <dt>Tracking</dt><dd class="mono">${esc(sh.tracking_number ?? '—')}</dd>
+                <dt>Shipped</dt><dd>${dateTime(sh.shipped_at)}</dd>
+                <dt>Delivered</dt><dd>${dateTime(sh.delivered_at)}</dd></dl>
                 <div class="inline-actions">
-                  ${sh.status === 'packed' ? `<button class="c-btn c-btn--sm" data-ship="shipped">${icon('truck')} kirim paket</button>` : ''}
-                  ${sh.status === 'shipped' ? `<button class="c-btn c-btn--sm" data-ship="delivered">${icon('check')} tandai diterima</button>` : ''}
+                  ${sh.status === 'packed' ? `<button class="c-btn c-btn--sm" data-ship="shipped">${icon('truck')} ship package</button>` : ''}
+                  ${sh.status === 'shipped' ? `<button class="c-btn c-btn--sm" data-ship="delivered">${icon('check')} mark as delivered</button>` : ''}
                 </div>
-                ${sh.status === 'awaiting_payment' ? '<p class="note">Menunggu pembayaran lunas sebelum dikemas.</p>' : ''}
-                ${sh.status === 'shipped' ? '<p class="note">Diterima → pesanan <i>completed</i> dan poin member bertambah (1 poin per Rp10.000).</p>' : ''}` : '<p class="muted">Belum ada shipment.</p>'}
+                ${sh.status === 'awaiting_payment' ? '<p class="note">Waiting for payment before packing.</p>' : ''}
+                ${sh.status === 'shipped' ? '<p class="note">Delivered orders are completed and members earn 1 point per Rp10.000.</p>' : ''}` : '<p class="muted">No shipment yet.</p>'}
             </div>
           </section>
 
-          ${claim || claimsFrom.length ? `<section class="panel"><div class="panel-head"><h2>Klaim garansi</h2></div><div class="panel-body"><dl class="dl">
-            ${claim ? `<dt>Pengganti untuk</dt><dd><a class="mono" href="/warranty-claims?q=${encodeURIComponent(claim.claim_number)}">${esc(claim.claim_number)}</a></dd>` : ''}
-            ${claimsFrom.map((w) => `<dt>Diklaim</dt><dd><a class="mono" href="/warranty-claims?q=${encodeURIComponent(w.claim_number)}">${esc(w.claim_number)}</a> ${badge(w.status)}</dd>`).join('')}
+          ${claim || claimsFrom.length ? `<section class="panel"><div class="panel-head"><h2>Warranty</h2></div><div class="panel-body"><dl class="dl">
+            ${claim ? `<dt>Replacement for</dt><dd><a class="mono" href="/warranty-claims?q=${encodeURIComponent(claim.claim_number)}">${esc(claim.claim_number)}</a></dd>` : ''}
+            ${claimsFrom.map((w) => `<dt>Claim</dt><dd><a class="mono" href="/warranty-claims?q=${encodeURIComponent(w.claim_number)}">${esc(w.claim_number)}</a> ${badge(w.status)}</dd>`).join('')}
           </dl></div></section>` : ''}
         </div>
       </div>`;
@@ -144,26 +143,26 @@ import AdminLayout from '../layouts/AdminLayout.astro';
       if (payBtn) {
         const p = all('payment').find((x) => x.order_id === id)!;
         const status = payBtn.dataset.pay!;
-        if (status === 'expired' && !(await confirmDialog({ title: 'Tandai kedaluwarsa?', body: 'Pesanan akan dibatalkan dan stok dikembalikan.', confirm: 'tandai kedaluwarsa', danger: true }))) return;
-        attempt(() => { const fx = setPaymentStatus(p.payment_id, status); log('status', 'payment', `${o.order_number}: payment → ${status}`, fx); return fx; }, `Payment ${enumLabel(status).toLowerCase()}`);
+        if (status === 'expired' && !(await confirmDialog({ title: 'Mark payment as expired?', body: 'The order will be cancelled and its stock returned.', confirm: 'mark as expired', danger: true }))) return;
+        attempt(() => { const fx = setPaymentStatus(p.payment_id, status); log('status', 'payment', `${o.order_number}: payment ${enumLabel(status).toLowerCase()}`, fx); return fx; }, `Payment marked ${enumLabel(status).toLowerCase()}`);
       }
       if (shipBtn) {
         const sh = all('shipment').find((x) => x.order_id === id)!;
         const status = shipBtn.dataset.ship!;
         if (status === 'shipped') {
           openForm({
-            title: 'Kirim paket',
+            title: 'Ship package',
             subtitle: `${enumLabel(sh.shipping_service)} · ${esc(o.order_number)}`,
-            fields: [{ name: 'tracking_number', label: 'No. resi', full: true, help: 'Kosongkan untuk dibuat otomatis.', placeholder: 'JNE0123456789' }],
-            submit: 'tandai dikirim',
-            success: 'Paket dikirim',
-            onSubmit: (v) => { const fx = setShipmentStatus(sh.shipment_id, 'shipped', String(v.tracking_number || '').trim()); log('status', 'shipment', `${o.order_number}: shipment → shipped`, fx); return fx; },
+            fields: [{ name: 'tracking_number', label: 'Tracking number', full: true, help: 'Leave empty to generate one.', placeholder: 'JNE0123456789' }],
+            submit: 'mark as shipped',
+            success: 'Package shipped',
+            onSubmit: (v) => { const fx = setShipmentStatus(sh.shipment_id, 'shipped', String(v.tracking_number || '').trim()); log('status', 'shipment', `${o.order_number}: shipped`, fx); return fx; },
           });
-        } else attempt(() => { const fx = setShipmentStatus(sh.shipment_id, status); log('status', 'shipment', `${o.order_number}: shipment → ${status}`, fx); return fx; }, 'Paket diterima');
+        } else attempt(() => { const fx = setShipmentStatus(sh.shipment_id, status); log('status', 'shipment', `${o.order_number}: delivered`, fx); return fx; }, 'Package delivered');
       }
       if (el.closest('[data-act=cancel]')) {
-        if (!(await confirmDialog({ title: `Batalkan ${o.order_number}?`, body: 'Stok semua item dikembalikan, payment ditandai kedaluwarsa, shipment dibatalkan.', confirm: 'batalkan pesanan', danger: true }))) return;
-        attempt(() => { const fx = cancelOrder(id); log('status', 'orders', `${o.order_number} dibatalkan`, fx); return fx; }, 'Pesanan dibatalkan');
+        if (!(await confirmDialog({ title: `Cancel ${o.order_number}?`, body: 'All items go back into stock and the payment and shipment are cancelled.', confirm: 'cancel order', danger: true }))) return;
+        attempt(() => { const fx = cancelOrder(id); log('status', 'orders', `${o.order_number} cancelled`, fx); return fx; }, 'Order cancelled');
       }
     });
 

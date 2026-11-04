@@ -20,7 +20,7 @@ A CMS prototype that makes the logical database design of `stanley_store` tangib
 
 ## Positioning
 
-Not a generic admin template: table and column names, ENUM values, keys, and ON DELETE actions are the exact ones from the course design document, so the UI doubles as a demonstration of the data model.
+Not a generic admin template: the data layer uses the exact relations, keys, ENUM values and delete rules from the course design document, while the screens speak plain store language.
 
 ## Operating Context
 
@@ -35,7 +35,7 @@ Not a generic admin template: table and column names, ENUM values, keys, and ON 
 - Chained effects: paid → order confirmed + shipment packed; delivered → order completed + member points/tier; cancelled → stock restored; claim approved → Rp0 replacement order.
 - Search, filter, sort, CSV export, activity log, sales chart.
 - localStorage quota (~5 MB) bounds uploaded images; uploads are compressed.
-- UI copy in Indonesian; table and column identifiers stay in English as in the ERD.
+- UI copy is in English and avoids technical database terms (no column names, constraint codes or storage details on screen).
 
 ## Brand Commitments
 
@@ -50,6 +50,6 @@ Visual language follows stanley1913.com: near-black `#101010` on white, square 2
 ## Product Principles
 
 1. The data model is the product: never invent columns the document does not have.
-2. Refuse invalid writes with the constraint's name and a recovery hint.
+2. Refuse invalid writes with a plain-language reason and how to fix it.
 3. Every workflow step shows its consequence on related rows.
 4. Dense, scannable tables over decorative surfaces.

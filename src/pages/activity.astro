@@ -2,11 +2,11 @@
 import AdminLayout from '../layouts/AdminLayout.astro';
 ---
 
-<AdminLayout title="Log aktivitas" active="activity" crumbs={[{ label: 'Log aktivitas' }]}>
+<AdminLayout title="Activity log" active="activity" crumbs={[{ label: 'Activity log' }]}>
   <div class="page-head">
     <div>
-      <h1>Log aktivitas</h1>
-      <p class="lead">Riwayat perubahan oleh admin di browser ini (maks. 300 entri terakhir), termasuk efek berantai setiap perubahan status.</p>
+      <h1>Activity log</h1>
+      <p class="lead">Recent changes made in the admin, including what each status change updated.</p>
     </div>
   </div>
   <section data-table></section>
@@ -19,8 +19,14 @@ import AdminLayout from '../layouts/AdminLayout.astro';
     import { session } from '../lib/auth.ts';
 
     const LABEL: Record<string, [string, string]> = {
-      create: ['tambah', 'ok'], update: ['ubah', 'info'], delete: ['hapus', 'bad'], status: ['status', 'warn'], login: ['sesi', ''], export: ['export', ''],
+      create: ['added', 'ok'], update: ['edited', 'info'], delete: ['deleted', 'bad'], status: ['status', 'warn'], login: ['session', ''], export: ['export', ''],
     };
+    const AREA: Record<string, string> = {
+      product: 'Products', category: 'Categories', promo_code: 'Promo codes', orders: 'Orders', payment: 'Orders', shipment: 'Orders',
+      customer: 'Customers', membership: 'Customers', customer_address: 'Customers', review: 'Reviews', warranty_claim: 'Warranty claims',
+      store: 'Store locator', session: 'Account',
+    };
+    const area = (t: string) => AREA[t] ?? 'Export';
     const who = session()?.name ?? 'Admin';
     const local = (iso: string) => {
       const d = new Date(iso);
@@ -31,21 +37,21 @@ import AdminLayout from '../layouts/AdminLayout.astro';
     mountTable(document.querySelector('[data-table]')!, {
       rows: () => entries().map((e, i) => ({ ...e, _i: i })) as any,
       rowKey: (r) => String(r._i),
-      search: (r) => `${r.title} ${r.table} ${(r.detail ?? []).join(' ')}`,
-      searchPlaceholder: 'Cari aktivitas…',
-      csvName: 'activity_log',
+      search: (r) => `${r.title} ${area(r.table)} ${(r.detail ?? []).join(' ')}`,
+      searchPlaceholder: 'Search activity…',
+      csvName: 'activity-log',
       pageSize: 25,
-      empty: 'Belum ada aktivitas. Perubahan data akan tercatat di sini.',
+      empty: 'No activity yet. Changes you make will show up here.',
       filters: [
-        { key: 'action', label: 'Aksi', options: Object.entries(LABEL).map(([k, v]) => [k, v[0]] as [string, string]), test: (r, v) => r.action === v },
-        { key: 'table', label: 'Relasi', options: [...new Set(entries().map((e) => e.table))].sort().map((t) => [t, t] as [string, string]), test: (r, v) => r.table === v },
+        { key: 'action', label: 'Action', options: Object.entries(LABEL).map(([k, v]) => [k, v[0]] as [string, string]), test: (r, v) => r.action === v },
+        { key: 'area', label: 'Area', options: [...new Set(Object.values(AREA))].sort().map((a) => [a, a] as [string, string]), test: (r, v) => area(r.table) === v },
       ],
       columns: [
-        { key: 'at', label: 'Waktu', code: false, cls: 'num', html: (r) => `${dateTime(local(r.at))}<br><small class="muted">${relative(r.at)}</small>`, csv: (r) => r.at },
-        { key: 'action', label: 'Aksi', code: false, html: (r) => `<span class="badge ${LABEL[r.action]?.[1] ?? ''}">${LABEL[r.action]?.[0] ?? r.action}</span>`, csv: (r) => r.action },
-        { key: 'table', label: 'Relasi', code: false, html: (r) => `<code>${esc(r.table)}</code>`, csv: (r) => r.table },
-        { key: 'title', label: 'Aktivitas', code: false, html: (r: Entry) => `<b style="font-weight:500">${esc(r.title)}</b>${r.detail?.length ? `<br><small class="muted">${r.detail.map(esc).join(' · ')}</small>` : ''}`, csv: (r) => [r.title, ...(r.detail ?? [])].join(' | ') },
-        { key: 'who', label: 'Oleh', code: false, html: () => esc(who), csv: () => who },
+        { key: 'at', label: 'Time', cls: 'num', html: (r) => `${dateTime(local(r.at))}<br><small class="muted">${relative(r.at)}</small>`, csv: (r) => r.at },
+        { key: 'action', label: 'Action', html: (r) => `<span class="badge ${LABEL[r.action]?.[1] ?? ''}">${LABEL[r.action]?.[0] ?? r.action}</span>`, csv: (r) => r.action },
+        { key: 'area', label: 'Area', html: (r) => esc(area(r.table)), csv: (r) => area(r.table) },
+        { key: 'title', label: 'Activity', html: (r: Entry) => `<b style="font-weight:500">${esc(r.title)}</b>${r.detail?.length ? `<br><small class="muted">${r.detail.map(esc).join(' · ')}</small>` : ''}`, csv: (r) => [r.title, ...(r.detail ?? [])].join(' | ') },
+        { key: 'who', label: 'By', html: () => esc(who), csv: () => who },
       ],
     });
   </script>

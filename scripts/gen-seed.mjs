@@ -173,7 +173,7 @@ people.forEach(([name, city, prov, postal], i) => {
     customer_address.push({
       customer_address_id: customer_address.length + 1,
       membership_id: mid,
-      label: 'Rumah',
+      label: 'Home',
       recipient_name: name,
       recipient_phone: customer[i].phone,
       street_address: streets[i],
@@ -185,7 +185,7 @@ people.forEach(([name, city, prov, postal], i) => {
       customer_address.push({
         customer_address_id: customer_address.length + 1,
         membership_id: mid,
-        label: 'Kantor',
+        label: 'Office',
         recipient_name: name,
         recipient_phone: customer[i].phone,
         street_address: pick(['Jl. Jend. Sudirman Kav. 52-53, Lt. 18', 'Jl. M.H. Thamrin No. 1, Lt. 9', 'Jl. HR Rasuna Said Kav. C-22']),
@@ -195,7 +195,7 @@ people.forEach(([name, city, prov, postal], i) => {
       });
   }
 });
-// Two members have a birthday this month → personal promo
+// One member has a birthday this month → personal promo
 const birthdayMember = membership[2];
 birthdayMember.birth_date = `1996-${ANCHOR.slice(5, 7)}-${pad(int(1, 28))}`;
 
@@ -226,7 +226,7 @@ const store = [
   retailer_name, store_name, street_address, city, province, postal_code,
   phone: `021${int(5000000, 7999999)}`,
   latitude, longitude,
-  opening_hours: i % 3 === 0 ? 'Senin–Minggu 10.00–22.00' : 'Senin–Jumat 10.00–21.00, Sabtu–Minggu 10.00–22.00',
+  opening_hours: i % 3 === 0 ? 'Mon–Sun 10:00–22:00' : 'Mon–Fri 10:00–21:00, Sat–Sun 10:00–22:00',
 }));
 
 // ---------- orders ----------
@@ -308,16 +308,16 @@ for (const m of membership) {
 
 // ---------- reviews (only purchased & delivered) ----------
 const titles = [
-  [5, 'Dingin seharian, mantap', 'Es batu masih ada sampai sore padahal dibawa ke kantor dari pagi. Tutup FlowState tidak bocor di tas.'],
-  [5, 'Warna cantik banget', 'Warnanya persis di foto, finishing-nya halus. Pas di cup holder mobil.'],
-  [4, 'Bagus, agak berat', 'Kualitas top seperti biasa, tapi kalau penuh lumayan berat untuk dibawa jalan jauh.'],
-  [5, 'Pengiriman cepat', 'Dikemas rapi pakai bubble wrap tebal, sampai dua hari. Barang original.'],
-  [3, 'Sedotan agak susah dibersihkan', 'Botolnya oke, cuma sedotan perlu sikat khusus. Semoga ada aksesoris sikatnya.'],
-  [4, 'Kopi tetap panas', 'Kopi pagi masih hangat sampai jam makan siang. Pegangannya nyaman.'],
-  [5, 'Hadiah ulang tahun', 'Beli untuk kado, yang menerima senang sekali. Box-nya juga premium.'],
-  [2, 'Ada baret kecil', 'Datang dengan baret halus di bagian bawah. CS responsif, tapi agak kecewa.'],
-  [5, 'Worth it', 'Harga memang premium, tapi kualitasnya terasa. Sudah tiga bulan dipakai setiap hari.'],
-  [4, 'Pas untuk naik gunung', 'Dibawa ke Prau, air tetap dingin. Tutupnya rapat.'],
+  [5, 'Ice-cold all day', 'Ice was still there by late afternoon after taking it to the office in the morning. The FlowState lid never leaked in my bag.'],
+  [5, 'Gorgeous color', 'The color is exactly like the photos and the finish is smooth. Fits my car cup holder.'],
+  [4, 'Great, a little heavy', 'Top quality as always, but it gets heavy when full on long walks.'],
+  [5, 'Fast delivery', 'Packed neatly with thick bubble wrap and arrived in two days. Genuine product.'],
+  [3, 'Straw is hard to clean', 'The tumbler is fine, but the straw needs a special brush. Hope a cleaning brush gets added.'],
+  [4, 'Keeps coffee hot', 'My morning coffee is still warm at lunch. The handle is comfortable.'],
+  [5, 'Perfect birthday gift', 'Bought it as a gift and they loved it. The box feels premium too.'],
+  [2, 'Arrived with a scratch', 'There was a small scratch on the bottom. Support was quick to reply, but a bit disappointing.'],
+  [5, 'Worth it', 'Premium price, but you can feel the quality. Used it every day for three months.'],
+  [4, 'Great for hiking', 'Took it up Mount Prau and the water stayed cold. The lid seals tight.'],
 ];
 const review = [];
 const reviewed = new Set();
@@ -340,12 +340,12 @@ const photos = (p) => {
   return { photo_full_url: u, photo_bottom_url: u, photo_defect_url: u };
 };
 const issues = [
-  'Tutup FlowState retak di bagian engsel setelah jatuh dari meja; air merembes saat dimiringkan.',
-  'Fungsi vakum hilang: minuman panas jadi dingin dalam satu jam dan dinding luar ikut panas.',
-  'Cat powder coat mengelupas di dasar botol meski hanya dicuci dengan tangan.',
-  'Pegangan longgar dan berbunyi, sekrup tidak bisa dikencangkan lagi.',
-  'Gasket tutup sobek sehingga botol bocor walau tutup sudah dikunci.',
-  'Penyok di badan tumbler membuat sedotan tidak bisa masuk penuh.',
+  'The FlowState lid cracked at the hinge after a fall from the table; water leaks when tilted.',
+  'Lost its vacuum seal: hot drinks go cold within an hour and the outside wall gets hot.',
+  'The powder coat is peeling at the base even though it was only hand-washed.',
+  'The handle is loose and rattles; the screw no longer tightens.',
+  'The lid gasket is torn, so the bottle leaks even when the lid is locked.',
+  'A dent in the tumbler body stops the straw from going all the way in.',
 ];
 const claimPlan = ['submitted', 'under_review', 'rejected', 'submitted', 'under_review', 'submitted'];
 claimPlan.forEach((status, k) => {
@@ -369,7 +369,7 @@ claimPlan.forEach((status, k) => {
     date_code: `${pick(['A', 'B', 'C', 'D'])}${int(1, 9)}${int(10, 99)}`,
     issue_description: issues[k],
     status,
-    rejection_reason: status === 'rejected' ? 'Kerusakan akibat pemakaian di mesin pencuci piring pada produk yang tidak dishwasher safe; tidak termasuk cakupan garansi.' : null,
+    rejection_reason: status === 'rejected' ? 'Damage caused by washing a non-dishwasher-safe product in a dishwasher, which the warranty does not cover.' : null,
     submitted_at,
     resolved_at: status === 'rejected' ? addMinutes(submitted_at, 2880) : null,
   });

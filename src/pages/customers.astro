@@ -3,13 +3,13 @@ import AdminLayout from '../layouts/AdminLayout.astro';
 import { ICONS } from '../lib/icons.ts';
 ---
 
-<AdminLayout title="Customer" active="customers" crumbs={[{ label: 'Pelanggan' }, { label: 'Customer & member' }]}>
+<AdminLayout title="Customers" active="customers" crumbs={[{ label: 'Customers' }]}>
   <div class="page-head">
     <div>
-      <h1>Customer & member</h1>
-      <p class="lead">Spesialisasi {'{Optional, And}'}: setiap pembeli adalah <code>Customer</code>; yang punya akun Club juga punya satu baris <code>Membership</code>. Guest = tanpa Membership.</p>
+      <h1>Customers</h1>
+      <p class="lead">Everyone who has shopped with us. Guests check out without an account; members belong to the Stanley 1913 Club and earn points.</p>
     </div>
-    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> customer baru</button></div>
+    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> add customer</button></div>
   </div>
   <section data-table></section>
 
@@ -27,19 +27,19 @@ import { ICONS } from '../lib/icons.ts';
 
     function edit(c?: Row) {
       openForm({
-        title: c ? 'Ubah customer' : 'Customer baru',
-        subtitle: c ? `<code>customer_id = ${c.customer_id}</code>` : 'Customer baru berstatus Guest. Jadikan member dari halaman detail.',
+        title: c ? 'Edit customer' : 'Add customer',
+        subtitle: c ? undefined : 'New customers start as guests. You can make them a Club member from their profile.',
         fields: [
-          { name: 'full_name', label: 'Nama lengkap', required: true, full: true },
-          { name: 'email', label: 'Email', type: 'email', required: true, help: 'Alternate key, harus unik.' },
-          { name: 'phone', label: 'Telepon', type: 'tel', required: true, placeholder: '0812xxxxxxxx' },
+          { name: 'full_name', label: 'Full name', required: true, full: true },
+          { name: 'email', label: 'Email', type: 'email', required: true, help: 'Each email can only be used once.' },
+          { name: 'phone', label: 'Phone', type: 'tel', required: true, placeholder: '0812xxxxxxxx' },
         ],
         values: c,
-        submit: c ? 'simpan' : 'tambah customer',
-        success: c ? 'Customer disimpan' : 'Customer ditambahkan',
+        submit: c ? 'save' : 'add customer',
+        success: c ? 'Customer saved' : 'Customer added',
         onSubmit: (v) => {
-          if (c) { update('customer', c.customer_id, v); log('update', 'customer', `Ubah customer ${v.full_name}`); }
-          else { const r = insert('customer', { ...v, created_at: nowLocal() }); log('create', 'customer', `Tambah customer ${r.full_name}`); }
+          if (c) { update('customer', c.customer_id, v); log('update', 'customer', `Edited customer ${v.full_name}`); }
+          else { const r = insert('customer', { ...v, created_at: nowLocal() }); log('create', 'customer', `Added customer ${r.full_name}`); }
         },
       });
     }
@@ -48,24 +48,24 @@ import { ICONS } from '../lib/icons.ts';
       rows: () => all('customer'),
       rowKey: (r) => keyOf('customer', r),
       search: (r) => `${r.full_name} ${r.email} ${r.phone}`,
-      searchPlaceholder: 'Cari nama, email, telepon…',
-      csvName: 'customer',
+      searchPlaceholder: 'Search name, email, phone…',
+      csvName: 'customers',
       defaultSort: { key: 'full_name', dir: 1 },
       filters: [
-        { key: 'kind', label: 'Jenis', options: [['member', 'Member'], ['guest', 'Guest']], test: (r, v) => (v === 'member') === !!membershipOf(r.customer_id) },
+        { key: 'kind', label: 'Type', options: [['member', 'Member'], ['guest', 'Guest']], test: (r, v) => (v === 'member') === !!membershipOf(r.customer_id) },
         { key: 'tier', label: 'Tier', options: [['member', 'Member'], ['vip', 'VIP'], ['all_access', 'All-Access']], test: (r, v) => membershipOf(r.customer_id)?.tier === v },
       ],
       columns: [
-        { key: 'full_name', label: 'Customer', code: 'full_name · email', sort: (r) => r.full_name, html: (r) => `<a href="/customer?id=${r.customer_id}"><b>${esc(r.full_name)}</b></a><br><small class="muted">${esc(r.email)}</small>`, csv: (r) => r.full_name },
+        { key: 'full_name', label: 'Customer', sort: (r) => r.full_name, html: (r) => `<a href="/customer?id=${r.customer_id}"><b>${esc(r.full_name)}</b></a><br><small class="muted">${esc(r.email)}</small>`, csv: (r) => r.full_name },
         { key: 'email', label: 'Email', hidden: true, html: () => '', csv: (r) => r.email },
-        { key: 'phone', label: 'Telepon', cls: 'num', html: (r) => esc(r.phone), csv: (r) => r.phone },
-        { key: 'tier', label: 'Club', code: 'membership.tier', sort: (r) => membershipOf(r.customer_id)?.total_points ?? -1, html: (r) => { const m = membershipOf(r.customer_id); return m ? tier(m.tier) : '<span class="muted">Guest</span>'; }, csv: (r) => membershipOf(r.customer_id)?.tier ?? 'guest' },
-        { key: 'points', label: 'Poin', code: 'total_points', cls: 'right num', sort: (r) => membershipOf(r.customer_id)?.total_points ?? -1, html: (r) => { const m = membershipOf(r.customer_id); return m ? number(m.total_points) : '—'; }, csv: (r) => membershipOf(r.customer_id)?.total_points ?? '' },
-        { key: 'orders', label: 'Pesanan', cls: 'right num', sort: (r) => ordersOf(r).length, html: (r) => String(ordersOf(r).length), csv: (r) => ordersOf(r).length },
-        { key: 'spend', label: 'Belanja selesai', cls: 'right num', sort: spend, html: (r) => rupiah(spend(r)), csv: spend },
-        { key: 'created_at', label: 'Bergabung', cls: 'num', sort: (r) => r.created_at, html: (r) => date(r.created_at), csv: (r) => r.created_at },
+        { key: 'phone', label: 'Phone', cls: 'num', html: (r) => esc(r.phone), csv: (r) => r.phone },
+        { key: 'tier', label: 'Club', sort: (r) => membershipOf(r.customer_id)?.total_points ?? -1, html: (r) => { const m = membershipOf(r.customer_id); return m ? tier(m.tier) : '<span class="muted">Guest</span>'; }, csv: (r) => membershipOf(r.customer_id)?.tier ?? 'guest' },
+        { key: 'points', label: 'Points', cls: 'right num', sort: (r) => membershipOf(r.customer_id)?.total_points ?? -1, html: (r) => { const m = membershipOf(r.customer_id); return m ? number(m.total_points) : '—'; }, csv: (r) => membershipOf(r.customer_id)?.total_points ?? '' },
+        { key: 'orders', label: 'Orders', cls: 'right num', sort: (r) => ordersOf(r).length, html: (r) => String(ordersOf(r).length), csv: (r) => ordersOf(r).length },
+        { key: 'spend', label: 'Total spent', cls: 'right num', sort: spend, html: (r) => rupiah(spend(r)), csv: spend },
+        { key: 'created_at', label: 'Joined', cls: 'num', sort: (r) => r.created_at, html: (r) => date(r.created_at), csv: (r) => r.created_at },
       ],
-      actions: () => rowButtons([{ act: 'edit', label: 'Ubah', ic: 'edit' }, { act: 'del', label: 'Hapus', ic: 'trash' }]),
+      actions: () => rowButtons([{ act: 'edit', label: 'Edit', ic: 'edit' }, { act: 'del', label: 'Delete', ic: 'trash' }]),
       onRow: (r) => (location.href = `/customer?id=${r.customer_id}`),
     });
 
@@ -76,12 +76,12 @@ import { ICONS } from '../lib/icons.ts';
       if (b.dataset.act === 'edit') edit(row);
       if (b.dataset.act === 'del') {
         const ok = await confirmDialog({
-          title: `Hapus ${row.full_name}?`,
-          body: 'Membership, alamat, kode promo personal, dan ulasan ikut terhapus (CASCADE). Customer yang punya pesanan atau klaim garansi tidak bisa dihapus (RESTRICT).',
-          confirm: 'hapus customer',
+          title: `Delete ${row.full_name}?`,
+          body: "Their membership, saved addresses, personal promo codes and reviews are removed too. Customers with orders or warranty claims can't be deleted.",
+          confirm: 'delete customer',
           danger: true,
         });
-        if (ok) attempt(() => { const plan = remove('customer', row.customer_id); log('delete', 'customer', `Hapus customer ${row.full_name}`); return plan.remove.length > 1 ? [`${plan.remove.length - 1} baris terkait ikut terhapus`] : []; }, 'Customer dihapus');
+        if (ok) attempt(() => { remove('customer', row.customer_id); log('delete', 'customer', `Deleted customer ${row.full_name}`); }, 'Customer deleted');
       }
     });
     document.querySelector('[data-new]')!.addEventListener('click', () => edit());

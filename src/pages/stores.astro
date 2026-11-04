@@ -7,9 +7,9 @@ import { ICONS } from '../lib/icons.ts';
   <div class="page-head">
     <div>
       <h1>Store locator</h1>
-      <p class="lead">Relasi <code>Store</code>: toko retailer resmi. Menghapus toko tidak menghapus klaim garansi yang merujuknya (<code>warranty_claim.store_id</code> ON DELETE SET NULL).</p>
+      <p class="lead">Authorized retail stores shown in the Store Locator. Warranty claims from a deleted store are kept.</p>
     </div>
-    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> toko baru</button></div>
+    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> add store</button></div>
   </div>
   <section data-table></section>
 
@@ -23,28 +23,29 @@ import { ICONS } from '../lib/icons.ts';
     import type { Row } from '../lib/schema.ts';
 
     const uniq = (k: string) => [...new Set(all('store').map((s) => s[k]))].sort().map((v) => [v, v] as [string, string]);
+    const claimsAt = (r: Row) => where('warranty_claim', (w) => w.store_id === r.store_id).length;
 
     function edit(s?: Row) {
       openForm({
-        title: s ? 'Ubah toko' : 'Toko baru',
+        title: s ? 'Edit store' : 'Add store',
         fields: [
           { name: 'retailer_name', label: 'Retailer', required: true },
-          { name: 'store_name', label: 'Nama toko', required: true },
-          { name: 'street_address', label: 'Alamat', required: true, full: true },
-          { name: 'city', label: 'Kota', required: true },
-          { name: 'province', label: 'Provinsi', required: true },
-          { name: 'postal_code', label: 'Kode pos', required: true },
-          { name: 'phone', label: 'Telepon', type: 'tel', required: true },
-          { name: 'latitude', label: 'Latitude', type: 'decimal', required: true, min: -90, max: 90, help: '−90 s.d. 90' },
-          { name: 'longitude', label: 'Longitude', type: 'decimal', required: true, min: -180, max: 180, help: '−180 s.d. 180' },
-          { name: 'opening_hours', label: 'Jam buka', required: true, full: true, placeholder: 'Senin–Minggu 10.00–22.00' },
+          { name: 'store_name', label: 'Store name', required: true },
+          { name: 'street_address', label: 'Address', required: true, full: true },
+          { name: 'city', label: 'City', required: true },
+          { name: 'province', label: 'Province', required: true },
+          { name: 'postal_code', label: 'Postal code', required: true },
+          { name: 'phone', label: 'Phone', type: 'tel', required: true },
+          { name: 'latitude', label: 'Latitude', type: 'decimal', required: true, min: -90, max: 90 },
+          { name: 'longitude', label: 'Longitude', type: 'decimal', required: true, min: -180, max: 180 },
+          { name: 'opening_hours', label: 'Opening hours', required: true, full: true, placeholder: 'Mon–Sun 10:00–22:00' },
         ],
         values: s,
-        submit: s ? 'simpan' : 'tambah toko',
-        success: s ? 'Toko disimpan' : 'Toko ditambahkan',
+        submit: s ? 'save' : 'add store',
+        success: s ? 'Store saved' : 'Store added',
         onSubmit: (v) => {
-          if (s) { update('store', s.store_id, v); log('update', 'store', `Ubah toko ${v.store_name}`); }
-          else { insert('store', v); log('create', 'store', `Tambah toko ${v.store_name}`); }
+          if (s) { update('store', s.store_id, v); log('update', 'store', `Edited store ${v.store_name}`); }
+          else { insert('store', v); log('create', 'store', `Added store ${v.store_name}`); }
         },
       });
     }
@@ -53,24 +54,24 @@ import { ICONS } from '../lib/icons.ts';
       rows: () => all('store'),
       rowKey: (r) => keyOf('store', r),
       search: (r) => `${r.store_name} ${r.retailer_name} ${r.city} ${r.street_address}`,
-      searchPlaceholder: 'Cari toko, kota, alamat…',
-      csvName: 'store',
+      searchPlaceholder: 'Search store, city, address…',
+      csvName: 'stores',
       defaultSort: { key: 'store_name', dir: 1 },
       filters: [
-        { key: 'province', label: 'Provinsi', options: uniq('province'), test: (r, v) => r.province === v },
+        { key: 'province', label: 'Province', options: uniq('province'), test: (r, v) => r.province === v },
         { key: 'retailer', label: 'Retailer', options: uniq('retailer_name'), test: (r, v) => r.retailer_name === v },
       ],
       columns: [
-        { key: 'store_name', label: 'Toko', code: 'store_name · retailer_name', sort: (r) => r.store_name, html: (r) => `<b>${esc(r.store_name)}</b><br><small class="muted">${esc(r.retailer_name)}</small>`, csv: (r) => r.store_name },
+        { key: 'store_name', label: 'Store', sort: (r) => r.store_name, html: (r) => `<b>${esc(r.store_name)}</b><br><small class="muted">${esc(r.retailer_name)}</small>`, csv: (r) => r.store_name },
         { key: 'retailer_name', label: 'Retailer', hidden: true, html: () => '', csv: (r) => r.retailer_name },
-        { key: 'street_address', label: 'Alamat', html: (r) => `${esc(r.street_address)}<br><small class="muted">${esc(r.city)}, ${esc(r.province)} <span class="num">${esc(r.postal_code)}</span></small>`, csv: (r) => `${r.street_address}, ${r.city}, ${r.province} ${r.postal_code}` },
-        { key: 'city', label: 'Kota', sort: (r) => r.city, html: (r) => esc(r.city), csv: (r) => r.city },
-        { key: 'phone', label: 'Telepon', cls: 'num', html: (r) => esc(r.phone), csv: (r) => r.phone },
-        { key: 'opening_hours', label: 'Jam buka', html: (r) => `<small>${esc(r.opening_hours)}</small>`, csv: (r) => r.opening_hours },
-        { key: 'coords', label: 'Koordinat', code: 'latitude, longitude', cls: 'num', html: (r) => `<a href="https://www.google.com/maps?q=${r.latitude},${r.longitude}" target="_blank" rel="noopener">${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)} ${icon('external').replace('<svg', '<svg width="12" height="12"')}</a>`, csv: (r) => `${r.latitude},${r.longitude}` },
-        { key: 'claims', label: 'Klaim', code: false, cls: 'right num', sort: (r) => where('warranty_claim', (w) => w.store_id === r.store_id).length, html: (r) => String(where('warranty_claim', (w) => w.store_id === r.store_id).length), csv: (r) => where('warranty_claim', (w) => w.store_id === r.store_id).length },
+        { key: 'street_address', label: 'Address', html: (r) => `${esc(r.street_address)}<br><small class="muted">${esc(r.city)}, ${esc(r.province)} <span class="num">${esc(r.postal_code)}</span></small>`, csv: (r) => `${r.street_address}, ${r.city}, ${r.province} ${r.postal_code}` },
+        { key: 'city', label: 'City', sort: (r) => r.city, html: (r) => esc(r.city), csv: (r) => r.city },
+        { key: 'phone', label: 'Phone', cls: 'num', html: (r) => esc(r.phone), csv: (r) => r.phone },
+        { key: 'opening_hours', label: 'Opening hours', html: (r) => `<small>${esc(r.opening_hours)}</small>`, csv: (r) => r.opening_hours },
+        { key: 'coords', label: 'Map', html: (r) => `<a href="https://www.google.com/maps?q=${r.latitude},${r.longitude}" target="_blank" rel="noopener">open map ${icon('external').replace('<svg', '<svg width="12" height="12"')}</a>`, csv: (r) => `${r.latitude},${r.longitude}` },
+        { key: 'claims', label: 'Claims', cls: 'right num', sort: claimsAt, html: (r) => String(claimsAt(r)), csv: claimsAt },
       ],
-      actions: () => rowButtons([{ act: 'edit', label: 'Ubah', ic: 'edit' }, { act: 'del', label: 'Hapus', ic: 'trash' }]),
+      actions: () => rowButtons([{ act: 'edit', label: 'Edit', ic: 'edit' }, { act: 'del', label: 'Delete', ic: 'trash' }]),
       onRow: (r) => edit(r),
     });
 
@@ -80,9 +81,9 @@ import { ICONS } from '../lib/icons.ts';
       if (!b || !row) return;
       if (b.dataset.act === 'edit') edit(row);
       if (b.dataset.act === 'del') {
-        const n = where('warranty_claim', (w) => w.store_id === row.store_id).length;
-        const ok = await confirmDialog({ title: `Hapus ${row.store_name}?`, body: n ? `${n} klaim garansi merujuk toko ini; <code>store_id</code>-nya akan diisi NULL (SET NULL), data klaim tetap ada.` : 'Toko akan dihapus permanen.', confirm: 'hapus toko', danger: true });
-        if (ok) attempt(() => { remove('store', row.store_id); log('delete', 'store', `Hapus toko ${row.store_name}`); return n ? [`${n} klaim: store_id → NULL`] : []; }, 'Toko dihapus');
+        const n = claimsAt(row);
+        const ok = await confirmDialog({ title: `Delete ${row.store_name}?`, body: n ? `${n} warranty claim${n > 1 ? 's' : ''} came from this store. They will be kept with the store name on file.` : 'This store will be removed from the Store Locator.', confirm: 'delete store', danger: true });
+        if (ok) attempt(() => { remove('store', row.store_id); log('delete', 'store', `Deleted store ${row.store_name}`); }, 'Store deleted');
       }
     });
     document.querySelector('[data-new]')!.addEventListener('click', () => edit());

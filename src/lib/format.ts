@@ -4,7 +4,7 @@ const rp = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', 
 export const rupiah = (n: number | null | undefined) => (n == null ? '—' : rp.format(n).replace(/ /g, ' '));
 export const number = (n: number) => new Intl.NumberFormat('id-ID').format(n);
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 export function date(v: string | null | undefined) {
   if (!v) return '—';
   const [y, m, d] = v.slice(0, 10).split('-').map(Number);
@@ -16,10 +16,10 @@ export function dateTime(v: string | null | undefined) {
 }
 export function relative(v: string) {
   const diff = (Date.now() - new Date(v).getTime()) / 1000;
-  if (diff < 60) return 'baru saja';
-  if (diff < 3600) return `${Math.floor(diff / 60)} mnt lalu`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
-  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} hari lalu`;
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} h ago`;
+  if (diff < 86400 * 7) return `${Math.floor(diff / 86400)} d ago`;
   return date(v);
 }
 export const enumLabel = (v: string | null | undefined) => (v ? ENUM_LABELS[v] ?? v : '—');

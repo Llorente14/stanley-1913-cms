@@ -12,45 +12,44 @@ interface Props {
 const { title, active, crumbs = [], description } = Astro.props;
 
 const groups: Array<{ label: string; items: Array<{ href: string; label: string; key: string; icon: IconName; count?: string }> }> = [
-  { label: 'Ringkasan', items: [{ href: '/', label: 'Dashboard', key: 'dashboard', icon: 'dashboard' }] },
+  { label: 'Overview', items: [{ href: '/', label: 'Dashboard', key: 'dashboard', icon: 'dashboard' }] },
   {
-    label: 'Katalog',
+    label: 'Catalog',
     items: [
-      { href: '/products', label: 'Produk', key: 'products', icon: 'product', count: 'lowStock' },
-      { href: '/categories', label: 'Kategori', key: 'categories', icon: 'category' },
+      { href: '/products', label: 'Products', key: 'products', icon: 'product', count: 'lowStock' },
+      { href: '/categories', label: 'Categories', key: 'categories', icon: 'category' },
     ],
   },
   {
-    label: 'Penjualan',
+    label: 'Sales',
     items: [
-      { href: '/orders', label: 'Pesanan', key: 'orders', icon: 'orders', count: 'pending' },
-      { href: '/promo-codes', label: 'Kode promo', key: 'promo-codes', icon: 'promo' },
+      { href: '/orders', label: 'Orders', key: 'orders', icon: 'orders', count: 'pending' },
+      { href: '/promo-codes', label: 'Promo codes', key: 'promo-codes', icon: 'promo' },
     ],
   },
   {
-    label: 'Pelanggan',
+    label: 'Customers',
     items: [
-      { href: '/customers', label: 'Customer & member', key: 'customers', icon: 'customers' },
-      { href: '/reviews', label: 'Ulasan', key: 'reviews', icon: 'review' },
+      { href: '/customers', label: 'Customers', key: 'customers', icon: 'customers' },
+      { href: '/reviews', label: 'Reviews', key: 'reviews', icon: 'review' },
     ],
   },
-  { label: 'After-sales', items: [{ href: '/warranty-claims', label: 'Klaim garansi', key: 'warranty-claims', icon: 'claim', count: 'claims' }] },
+  { label: 'After-sales', items: [{ href: '/warranty-claims', label: 'Warranty claims', key: 'warranty-claims', icon: 'claim', count: 'claims' }] },
   {
-    label: 'Lainnya',
+    label: 'More',
     items: [
       { href: '/stores', label: 'Store locator', key: 'stores', icon: 'store' },
-      { href: '/activity', label: 'Log aktivitas', key: 'activity', icon: 'activity' },
+      { href: '/activity', label: 'Activity log', key: 'activity', icon: 'activity' },
     ],
   },
 ];
 ---
 
 <!doctype html>
-<html lang="id">
+<html lang="en">
   <head>
     <Head title={title} description={description} />
     <script is:inline>
-      // Auth guard before first paint (prototype session in localStorage).
       try {
         if (!localStorage.getItem('stanley-admin:session')) location.replace('/login?next=' + encodeURIComponent(location.pathname + location.search));
       } catch (e) {}
@@ -58,10 +57,10 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
   </head>
   <body>
     <div class="shell">
-      <aside class="sidebar" id="sidebar" aria-label="Navigasi utama">
+      <aside class="sidebar" id="sidebar" aria-label="Main navigation">
         <a class="brand" href="/">
           <img src="/bear-logo.png" alt="" width="34" height="29" />
-          <div><b>Stanley 1913</b><span>Admin CMS</span></div>
+          <div><b>Stanley 1913</b><span>Admin</span></div>
         </a>
         <nav class="nav">
           {
@@ -80,21 +79,17 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
           }
         </nav>
         <div class="sidebar-foot">
-          <div class="quota" title="Pemakaian localStorage oleh data CMS">
-            <span data-quota>Penyimpanan browser</span>
-            <i><b data-quota-bar style="width:0%"></b></i>
-          </div>
           <div class="who">
-            <span class="avatar">AS</span>
-            <div><b data-who>Admin Stanley</b><small data-who-email>admin@stanley1913.id</small></div>
+            <span class="avatar">SA</span>
+            <div><b data-who>Stanley Admin</b><small data-who-email>admin@stanley1913.id</small></div>
           </div>
-          <button class="c-btn c-btn--outline c-btn--sm" type="button" data-logout><Fragment set:html={ICONS.logout} /> keluar</button>
+          <button class="c-btn c-btn--outline c-btn--sm" type="button" data-logout><Fragment set:html={ICONS.logout} /> log out</button>
         </div>
       </aside>
       <div class="scrim" data-scrim></div>
       <div class="main">
         <header class="topbar">
-          <button class="c-btn c-btn--ghost c-btn--icon menu-btn" type="button" data-menu aria-label="Buka menu" aria-controls="sidebar"><Fragment set:html={ICONS.menu} /></button>
+          <button class="c-btn c-btn--ghost c-btn--icon menu-btn" type="button" data-menu aria-label="Open menu" aria-controls="sidebar"><Fragment set:html={ICONS.menu} /></button>
           <nav class="crumbs" aria-label="Breadcrumb">
             <a href="/">Admin</a>
             {
@@ -116,7 +111,7 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
     </div>
     <script>
       import '../lib/boot.ts';
-      import { all, onChange, storageBytes } from '../lib/db.ts';
+      import { all, onChange } from '../lib/db.ts';
       import { logout, session } from '../lib/auth.ts';
       import { log } from '../lib/activity.ts';
 
@@ -136,16 +131,12 @@ const groups: Array<{ label: string; items: Array<{ href: string; label: string;
           el.textContent = String(n);
           el.hidden = n === 0;
         });
-        const used = storageBytes();
-        const limit = 5 * 1024 * 1024;
-        document.querySelector('[data-quota]')!.textContent = `Penyimpanan browser · ${(used / 1024).toFixed(0)} KB dari ±5 MB`;
-        (document.querySelector('[data-quota-bar]') as HTMLElement).style.width = Math.min(100, (used / limit) * 100).toFixed(1) + '%';
       }
       counts();
       onChange(counts);
 
       document.querySelector('[data-logout]')!.addEventListener('click', () => {
-        log('login', 'session', 'Keluar dari admin');
+        log('login', 'session', 'Logged out');
         logout();
         location.href = '/login';
       });

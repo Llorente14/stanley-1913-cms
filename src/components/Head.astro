@@ -6,7 +6,7 @@ interface Props {
   description?: string;
 }
 const SITE_NAME = 'Stanley 1913';
-const { title, description = 'Stanley 1913 Admin CMS — kelola katalog produk, pesanan, member Stanley 1913 Club, ulasan, klaim Lifetime Warranty, dan Store Locator.' } = Astro.props;
+const { title, description = 'Stanley 1913 Admin — manage the product catalog, orders, Stanley 1913 Club members, reviews, Lifetime Warranty claims and the Store Locator.' } = Astro.props;
 const fullTitle = `${title} | Stanley 1913 Admin`;
 const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 const ogImage = new URL('/og-image.png', Astro.site ?? Astro.url).href;
@@ -31,7 +31,7 @@ const ogImage = new URL('/og-image.png', Astro.site ?? Astro.url).href;
 <meta property="og:image:secure_url" content={ogImage} />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="628" />
-<meta property="og:locale" content="id_ID" />
+<meta property="og:locale" content="en_US" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content={fullTitle} />
 <meta name="twitter:description" content={description} />

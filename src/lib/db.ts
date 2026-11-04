@@ -1,10 +1,10 @@
 // Tiny relational engine over localStorage. Every write is validated against SCHEMA
 // (NOT NULL, ENUM, length, CHECK, UNIQUE, FK) and deletes follow ON DELETE actions.
-import { SCHEMA, TABLES, type Row, type TableName, type TableDef, type Column } from './schema.ts';
+import { SCHEMA, TABLES, NOUNS, type Row, type TableName, type TableDef, type Column } from './schema.ts';
 
 export const STORAGE_PREFIX = 'stanley-admin:';
 const DB_KEY = STORAGE_PREFIX + 'db';
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export interface StorageLike {
   getItem(k: string): string | null;
@@ -68,6 +68,7 @@ function ensure(): DbState {
       /* fall through to reseed */
     }
   }
+  if (raw) storage.removeItem(STORAGE_PREFIX + 'activity');
   state = emptyState();
   if (seedProvider) loadSeed(seedProvider());
   return state;
@@ -90,7 +91,7 @@ function persist() {
   try {
     storage.setItem(DB_KEY, JSON.stringify(state));
   } catch {
-    throw new DbError('Penyimpanan browser penuh (kuota localStorage). Hapus atau perkecil gambar yang diunggah.', 'storage_quota');
+    throw new DbError('Not enough space to save this change. Try a smaller image.', 'storage_quota');
   }
   listeners.forEach((l) => l());
 }
@@ -150,26 +151,26 @@ function validate(def: TableDef, row: Row, selfKey: string | null) {
     const v = row[col.name];
     if (col.auto && isEmpty(v)) continue;
     if (isEmpty(v)) {
-      if (col.required && col.type !== 'bool') throw new DbError(`${col.label} (${col.name}) wajib diisi.`, 'NOT NULL', col.name);
+      if (col.required && col.type !== 'bool') throw new DbError(`${col.label} is required.`, 'NOT NULL', col.name);
       continue;
     }
     if ((col.type === 'int' || col.type === 'money' || col.type === 'decimal') && Number.isNaN(v))
-      throw new DbError(`${col.label} (${col.name}) harus berupa angka.`, 'domain', col.name);
-    if (col.values && !col.values.includes(v)) throw new DbError(`${col.label}: nilai "${v}" tidak ada di ENUM.`, 'ENUM', col.name);
+      throw new DbError(`${col.label} must be a number.`, 'domain', col.name);
+    if (col.values && !col.values.includes(v)) throw new DbError(`${col.label}: "${v}" is not an allowed option.`, 'ENUM', col.name);
     if (typeof v === 'string') {
       if (col.max && v.length > col.max && !(col.name === 'image_url'))
-        throw new DbError(`${col.label} maksimal ${col.max} karakter (VARCHAR(${col.max})).`, 'domain', col.name);
+        throw new DbError(`${col.label} can be at most ${col.max} characters.`, 'domain', col.name);
       if (col.exact && v.length !== col.exact)
-        throw new DbError(`${col.label} harus tepat ${col.exact} karakter (CHAR(${col.exact})).`, 'domain', col.name);
+        throw new DbError(`${col.label} must be exactly ${col.exact} characters.`, 'domain', col.name);
       if (col.pattern && !col.pattern.test(v))
-        throw new DbError(`${col.label} tidak valid: ${col.patternHint ?? 'format salah'}.`, 'domain', col.name);
+        throw new DbError(`${col.label} is not valid (${col.patternHint ?? 'wrong format'}).`, 'domain', col.name);
       if ((col.type === 'date' && !/^\d{4}-\d{2}-\d{2}$/.test(v)) || (col.type === 'datetime' && !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)))
-        throw new DbError(`${col.label} bukan tanggal yang valid.`, 'domain', col.name);
+        throw new DbError(`${col.label} is not a valid date.`, 'domain', col.name);
     }
     if (typeof v === 'number') {
-      if (col.min !== undefined && v < col.min) throw new DbError(`${col.label} tidak boleh kurang dari ${col.min}.`, `CHECK (${col.name} >= ${col.min})`, col.name);
+      if (col.min !== undefined && v < col.min) throw new DbError(`${col.label} cannot be less than ${col.min}.`, `CHECK (${col.name} >= ${col.min})`, col.name);
       if (col.maxValue !== undefined && v > col.maxValue)
-        throw new DbError(`${col.label} tidak boleh lebih dari ${col.maxValue}.`, `CHECK (${col.name} <= ${col.maxValue})`, col.name);
+        throw new DbError(`${col.label} cannot be more than ${col.maxValue}.`, `CHECK (${col.name} <= ${col.maxValue})`, col.name);
     }
   }
 
@@ -183,7 +184,7 @@ function validate(def: TableDef, row: Row, selfKey: string | null) {
     const clash = rows.find((r) => keyOf(def.name, r) !== selfKey && cols.every((c) => r[c] === row[c]));
     if (clash) {
       const label = cols.map((c) => def.columns.find((x) => x.name === c)?.label ?? c).join(' + ');
-      throw new DbError(`${label} "${cols.map((c) => row[c]).join(', ')}" sudah dipakai. Nilai harus unik.`, `UNIQUE (${cols.join(', ')})`, cols[0]);
+      throw new DbError(`${label} "${cols.map((c) => row[c]).join(', ')}" is already in use.`, `UNIQUE (${cols.join(', ')})`, cols[0]);
     }
   }
 
@@ -191,13 +192,13 @@ function validate(def: TableDef, row: Row, selfKey: string | null) {
   for (const fk of def.fks) {
     const vals = fk.columns.map((c) => row[c]);
     if (vals.some(isEmpty)) {
-      if (!fk.nullable) throw new DbError(`${fk.columns.join(', ')} wajib diisi.`, 'NOT NULL', fk.columns[0]);
+      if (!fk.nullable) throw new DbError(`${def.columns.find((c) => c.name === fk.columns[0])?.label ?? fk.columns[0]} is required.`, 'NOT NULL', fk.columns[0]);
       continue;
     }
     const parent = ensure().tables[fk.refTable].find((p) => fk.refColumns.every((rc, i) => p[rc] === vals[i]));
     if (!parent)
       throw new DbError(
-        `Referensi tidak ditemukan: ${def.name}.${fk.columns.join(', ')} → ${fk.refTable}(${fk.refColumns.join(', ')}).`,
+        `The selected ${(def.columns.find((c) => c.name === fk.columns[0])?.label ?? fk.refTable).toLowerCase()} no longer exists.`,
         `FOREIGN KEY (${fk.columns.join(', ')})`,
         fk.columns[0],
       );
@@ -231,7 +232,7 @@ export function update<T extends Row = Row>(t: TableName, key: string | number, 
   const def = SCHEMA[t];
   const k = String(key);
   const idx = s.tables[t].findIndex((r) => keyOf(t, r) === k);
-  if (idx < 0) throw new DbError(`Baris ${def.label} #${k} tidak ditemukan.`, 'not_found');
+  if (idx < 0) throw new DbError(`This record no longer exists.`, 'not_found');
   const current = s.tables[t][idx];
   const next = coerce(def, { ...current, ...patch });
   for (const c of def.pk) next[c] = current[c];
@@ -258,7 +259,7 @@ function planDelete(t: TableName, row: Row, plan: DeletePlan, seen: Set<string>)
       if (!kids.length) continue;
       if (fk.onDelete === 'RESTRICT') {
         throw new DbError(
-          `Tidak bisa dihapus: masih dipakai ${kids.length} baris di ${SCHEMA[child].label} (${child}.${fk.columns.join(', ')}). Aturan ON DELETE RESTRICT menjaga histori.`,
+          `Can't delete: still used by ${kids.length} ${NOUNS[child] ?? child}.`,
           `ON DELETE RESTRICT ${child}.${fk.columns.join(', ')}`,
         );
       }
@@ -274,7 +275,7 @@ function planDelete(t: TableName, row: Row, plan: DeletePlan, seen: Set<string>)
 export function remove(t: TableName, key: string | number): DeletePlan {
   const s = ensure();
   const row = get(t, key);
-  if (!row) throw new DbError(`Baris tidak ditemukan.`, 'not_found');
+  if (!row) throw new DbError(`This record no longer exists.`, 'not_found');
   const plan: DeletePlan = { remove: [], setNull: [] };
   planDelete(t, row, plan, new Set());
   const removing = new Set(plan.remove.map((r) => r.t + ':' + r.key));

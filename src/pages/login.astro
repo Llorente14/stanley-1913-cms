@@ -4,9 +4,9 @@ import Head from '../components/Head.astro';
 ---
 
 <!doctype html>
-<html lang="id">
+<html lang="en">
   <head>
-    <Head title="Masuk" description="Masuk ke Stanley 1913 Admin CMS untuk mengelola data toko stanley_store." />
+    <Head title="Sign in" description="Sign in to the Stanley 1913 Admin to manage the online store." />
   </head>
   <body>
     <div class="login">
@@ -17,19 +17,19 @@ import Head from '../components/Head.astro';
           alt=""
           onerror="this.remove()"
         />
-        <p>Sejak 1913. Satu dasbor untuk katalog, pesanan, member Club, dan klaim Lifetime Warranty.</p>
+        <p>Built for life since 1913. One place for the catalog, orders, Club members and Lifetime Warranty claims.</p>
       </section>
       <section class="login-form">
         <form data-login novalidate onsubmit="return false">
           <a class="brand" href="/login">
             <img src="/bear-logo.png" alt="" width="34" height="29" />
-            <div><b>Stanley 1913</b><span>Admin CMS</span></div>
+            <div><b>Stanley 1913</b><span>Admin</span></div>
           </a>
           <div>
-            <h1>Masuk ke admin</h1>
-            <p class="muted" style="margin-top:8px">Gunakan akun admin toko untuk mengelola data <code>stanley_store</code>.</p>
+            <h1>Sign in</h1>
+            <p class="muted" style="margin-top:8px">Use your store admin account to continue.</p>
           </div>
-          <p class="form-error" data-reset hidden role="status">Data demo sudah dikembalikan ke kondisi awal.</p>
+          <p class="form-error" data-reset hidden role="status">The demo data has been reset.</p>
           <div class="field">
             <label for="email">Email</label>
             <input class="input" id="email" name="email" type="email" autocomplete="username" required />
@@ -37,9 +37,9 @@ import Head from '../components/Head.astro';
           <div class="field">
             <label for="password">Password</label>
             <input class="input" id="password" name="password" type="password" autocomplete="current-password" required />
-            <span class="error" data-error hidden>Email atau password salah. Periksa lagi lalu coba masuk.</span>
+            <span class="error" data-error hidden>Incorrect email or password. Please try again.</span>
           </div>
-          <button class="c-btn" type="submit">masuk</button>
+          <button class="c-btn" type="submit">sign in</button>
         </form>
       </section>
     </div>
@@ -65,7 +65,7 @@ import Head from '../components/Head.astro';
         const pass = (form.elements.namedItem('password') as HTMLInputElement).value;
         const err = form.querySelector<HTMLElement>('[data-error]')!;
         if (login(email, pass)) {
-          log('login', 'session', 'Masuk ke admin');
+          log('login', 'session', 'Signed in');
           location.href = safeNext;
         } else {
           err.hidden = false;

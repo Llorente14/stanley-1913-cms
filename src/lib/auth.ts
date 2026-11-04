@@ -1,7 +1,7 @@
 import { STORAGE_PREFIX } from './db.ts';
 
 // Prototype-only credentials (no real security; documented in README).
-export const ADMIN = { email: 'admin@stanley1913.id', password: 'Stanley1913!', name: 'Admin Stanley' };
+export const ADMIN = { email: 'admin@stanley1913.id', password: 'Stanley1913!', name: 'Stanley Admin' };
 const KEY = STORAGE_PREFIX + 'session';
 
 export function login(email: string, password: string) {
