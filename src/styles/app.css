@@ -99,7 +99,7 @@ code, .mono { font-family: var(--mono); font-size: 0.86em; }
 }
 
 /* ---------- form fields ---------- */
-.field { display: grid; gap: 6px; min-width: 0; }
+.field { display: grid; gap: 6px; min-width: 0; align-content: start; }
 .field > label, .field > .label { font-weight: 500; font-size: 13px; display: flex; gap: 8px; align-items: baseline; }
 .field .col { font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 400; }
 .field .req { color: var(--danger); }
@@ -256,7 +256,7 @@ dialog.modal[open] { animation: pop 0.28s var(--ease); }
 .modal-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--line); }
 .modal-head p { color: var(--muted); font-size: 13px; margin-top: 4px; }
 .modal-head .c-btn { margin-left: auto; }
-.modal-body { padding: 20px 22px; overflow-y: auto; display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.modal-body { padding: 20px 22px; overflow-y: auto; display: grid; gap: 18px 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 .modal-body .full { grid-column: 1 / -1; }
 .modal-foot { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 22px; border-top: 1px solid var(--line); background: var(--surface); }
 .form-error { grid-column: 1 / -1; padding: 10px 12px; background: var(--danger-soft); color: var(--danger); font-size: 13px; display: grid; gap: 2px; }
@@ -377,3 +377,8 @@ dialog.modal[open] { animation: pop 0.28s var(--ease); }
 }
 .stack { display: grid; gap: 24px; align-content: start; min-width: 0; }
 .toolbar .select { max-width: 230px; text-overflow: ellipsis; }
+.input, .select { height: 40px; }
+.select:invalid { color: var(--muted); }
+.select option { color: var(--ink); }
+.modal-body .field .check { min-height: 24px; }
+.modal-body .field:has(.check) > .label { display: none; }

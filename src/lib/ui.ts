@@ -102,7 +102,7 @@ function fieldHtml(f: FieldDef, value: unknown) {
       control = `<textarea class="textarea" ${common}>${esc(v)}</textarea>`;
       break;
     case 'select':
-      control = `<select class="select" ${common}>${f.required ? '' : '<option value="">— None —</option>'}${(f.options ?? [])
+      control = `<select class="select" ${common}>${f.required ? `<option value="" disabled ${v === '' || v == null ? 'selected' : ''}>Select ${esc(f.label.toLowerCase())}…</option>` : '<option value="">— None —</option>'}${(f.options ?? [])
         .map(([ov, ol]) => `<option value="${esc(ov)}" ${String(ov) === String(v) ? 'selected' : ''}>${esc(ol)}</option>`)
         .join('')}</select>`;
       break;
@@ -222,6 +222,7 @@ export function openForm(o: {
     }
   });
   d.showModal();
+  d.querySelector<HTMLElement>('.modal-body input:not([type=hidden]):not([type=file]), .modal-body select, .modal-body textarea')?.focus();
   return d;
 }
 
