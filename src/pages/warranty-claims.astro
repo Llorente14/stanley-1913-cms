@@ -1,0 +1,140 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Klaim garansi" active="warranty-claims" crumbs={[{ label: 'After-sales' }, { label: 'Klaim garansi' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Klaim Lifetime Warranty</h1>
+      <p class="lead">Pembelian di website merujuk <code>order_item (order_id, product_id)</code>; pembelian di retailer memakai <code>store_id</code> + <code>purchase_date</code>. Klaim disetujui otomatis membuat pesanan pengganti Rp0 tanpa Payment.</p>
+    </div>
+  </div>
+  <section data-table></section>
+
+  <script>
+    import '../lib/boot.ts';
+    import { all, get, keyOf } from '../lib/db.ts';
+    import { mountTable, openForm, attempt, toast } from '../lib/ui.ts';
+    import { esc, date, dateTime, badge, enumLabel } from '../lib/format.ts';
+    import { setClaimStatus, defaultShipTo } from '../lib/workflow.ts';
+    import { log } from '../lib/activity.ts';
+    import { icon } from '../lib/icons.ts';
+    import { ENUMS, SHIPPING_COST, type Row } from '../lib/schema.ts';
+
+    const source = (r: Row) => (r.order_id ? 'online' : 'retailer');
+
+    function decide(c: Row) {
+      const p = get('product', c.product_id)!;
+      const cust = get('customer', c.customer_id)!;
+      const o = c.order_id ? get('orders', c.order_id) : null;
+      const st = c.store_id ? get('store', c.store_id) : null;
+      const rep = c.replacement_order_id ? get('orders', c.replacement_order_id) : null;
+      const d = document.createElement('dialog');
+      d.className = 'modal';
+      const photo = (u: string, l: string) => `<figure style="margin:0;display:grid;gap:6px"><img class="thumb" style="width:100%;height:120px" src="${esc(u)}" alt="${esc(l)}" loading="lazy"><figcaption class="note">${l}</figcaption></figure>`;
+      const open = c.status === 'submitted' || c.status === 'under_review';
+      d.innerHTML = `<form method="dialog">
+        <div class="modal-head"><div><h2>${esc(c.claim_number)}</h2><p>${badge(c.status)} · diajukan ${dateTime(c.submitted_at)}</p></div>
+          <button class="c-btn c-btn--ghost c-btn--icon" value="x" aria-label="Tutup">${icon('x')}</button></div>
+        <div class="modal-body">
+          <div class="full cell-prod">${p.image_url ? `<img src="${esc(p.image_url)}" alt="" width="44" height="44">` : ''}<div><b>${esc(p.name)}</b><small>${esc(p.color)} · ${esc(p.size)} · <span class="mono">${esc(p.sku)}</span></small></div></div>
+          <dl class="dl full">
+            <dt>Customer</dt><dd><a href="/customer?id=${cust.customer_id}">${esc(cust.full_name)}</a> · ${esc(cust.email)}</dd>
+            <dt>Sumber</dt><dd>${o ? `Website · <a class="mono" href="/order?id=${o.order_id}">${esc(o.order_number)}</a>` : `Retailer · ${esc(st?.store_name ?? c.purchase_place)}${st ? '' : ' <small class="muted">(store_id NULL)</small>'}`}</dd>
+            <dt>Tanggal beli</dt><dd>${date(c.purchase_date)}</dd>
+            <dt>Date code</dt><dd class="mono">${esc(c.date_code)}</dd>
+            <dt>Masalah</dt><dd>${esc(c.issue_description)}</dd>
+            ${c.rejection_reason ? `<dt>Alasan ditolak</dt><dd class="sale">${esc(c.rejection_reason)}</dd>` : ''}
+            ${rep ? `<dt>Pengganti</dt><dd><a class="mono" href="/order?id=${rep.order_id}">${esc(rep.order_number)}</a> ${badge(rep.status)}</dd>` : ''}
+            <dt>Diselesaikan</dt><dd>${dateTime(c.resolved_at)}</dd>
+          </dl>
+          <div class="full" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">${photo(c.photo_full_url, 'photo_full_url')}${photo(c.photo_bottom_url, 'photo_bottom_url')}${photo(c.photo_defect_url, 'photo_defect_url')}</div>
+        </div>
+        <div class="modal-foot">${open ? `
+          ${c.status === 'submitted' ? '<button type="button" class="c-btn c-btn--outline c-btn--sm" data-d="under_review">tandai ditinjau</button>' : ''}
+          <button type="button" class="c-btn c-btn--danger c-btn--sm" data-d="rejected">tolak</button>
+          <button type="button" class="c-btn c-btn--sm" data-d="approved">${icon('check')} setujui & kirim pengganti</button>` : '<button class="c-btn c-btn--outline c-btn--sm" value="x">tutup</button>'}</div>
+      </form>`;
+      document.body.append(d);
+      d.addEventListener('close', () => d.remove());
+      d.addEventListener('click', (e) => {
+        if (e.target === d) d.close();
+        const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-d]');
+        if (!b) return;
+        const status = b.dataset.d!;
+        if (status === 'under_review') {
+          d.close();
+          attempt(() => { const fx = setClaimStatus(c.warranty_claim_id, status); log('status', 'warranty_claim', `${c.claim_number} ditinjau`, fx); return fx; }, 'Klaim ditinjau');
+        } else if (status === 'rejected') {
+          d.close();
+          openForm({
+            title: `Tolak ${c.claim_number}`,
+            fields: [{ name: 'rejection_reason', label: 'Alasan ditolak', type: 'textarea', required: true, full: true, help: 'Wajib (CHECK chk_rejected_has_reason). Maks 255 karakter.' }],
+            submit: 'tolak klaim',
+            danger: true,
+            success: 'Klaim ditolak',
+            onSubmit: (v) => { const fx = setClaimStatus(c.warranty_claim_id, 'rejected', { reason: String(v.rejection_reason).trim() }); log('status', 'warranty_claim', `${c.claim_number} ditolak`, fx); return fx; },
+          });
+        } else {
+          d.close();
+          const ship = defaultShipTo(c.customer_id);
+          openForm({
+            title: `Setujui ${c.claim_number}`,
+            subtitle: `Membuat <code>orders</code> warranty_replacement Rp0 + <code>order_item</code> (${esc(p.sku)}, qty 1, Rp0) + <code>shipment</code> packed. Stok tersedia: ${p.stock_qty}.`,
+            fields: [
+              { name: 'shipping_service', label: 'Layanan kirim', type: 'select', required: true, options: ENUMS.shipping_service.map((s) => [s, `${enumLabel(s)} (ditanggung toko, biasa ${SHIPPING_COST[s] / 1000}rb)`] as [string, string]) },
+              { name: 'recipient_name', label: 'Penerima', required: true },
+              { name: 'recipient_phone', label: 'Telepon', type: 'tel', required: true },
+              { name: 'postal_code', label: 'Kode pos', required: true },
+              { name: 'street_address', label: 'Alamat', required: true, full: true },
+              { name: 'city', label: 'Kota', required: true },
+              { name: 'province', label: 'Provinsi', required: true },
+            ],
+            values: ship,
+            submit: 'setujui klaim',
+            success: 'Klaim disetujui',
+            onSubmit: (v) => { const fx = setClaimStatus(c.warranty_claim_id, 'approved', { shipTo: v as any }); log('status', 'warranty_claim', `${c.claim_number} disetujui`, fx); return fx; },
+          });
+        }
+      });
+      d.showModal();
+    }
+
+    mountTable(document.querySelector('[data-table]')!, {
+      rows: () => all('warranty_claim'),
+      rowKey: (r) => keyOf('warranty_claim', r),
+      search: (r) => `${r.claim_number} ${get('customer', r.customer_id)?.full_name} ${get('product', r.product_id)?.name} ${r.purchase_place} ${r.date_code}`,
+      searchPlaceholder: 'Cari no. klaim, customer, produk…',
+      csvName: 'warranty_claim',
+      defaultSort: { key: 'submitted_at', dir: -1 },
+      filters: [
+        { key: 'status', label: 'Status', options: ENUMS.claim_status.map((s) => [s, enumLabel(s)] as [string, string]), test: (r, v) => r.status === v },
+        { key: 'source', label: 'Sumber', options: [['online', 'Website'], ['retailer', 'Retailer']], test: (r, v) => source(r) === v },
+      ],
+      columns: [
+        { key: 'claim_number', label: 'No. klaim', sort: (r) => r.claim_number, html: (r) => `<b class="mono">${esc(r.claim_number)}</b>`, csv: (r) => r.claim_number },
+        { key: 'submitted_at', label: 'Diajukan', cls: 'num', sort: (r) => r.submitted_at, html: (r) => dateTime(r.submitted_at), csv: (r) => r.submitted_at },
+        { key: 'customer_id', label: 'Customer', sort: (r) => get('customer', r.customer_id)?.full_name ?? '', html: (r) => esc(get('customer', r.customer_id)?.full_name), csv: (r) => get('customer', r.customer_id)?.full_name },
+        { key: 'product_id', label: 'Produk', sort: (r) => get('product', r.product_id)?.name ?? '', html: (r) => { const p = get('product', r.product_id); return `<div class="cell-prod">${p?.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy" width="44" height="44">` : ''}<div><b>${esc(p?.name)}</b><small>${esc(p?.color)} · <span class="mono">${esc(r.date_code)}</span></small></div></div>`; }, csv: (r) => get('product', r.product_id)?.sku },
+        { key: 'source', label: 'Sumber', code: 'order_id / store_id', sort: source, html: (r) => (r.order_id ? `<span class="badge plain">website</span><br><small class="muted mono">${esc(get('orders', r.order_id)?.order_number)}</small>` : `<span class="badge plain">retailer</span><br><small class="muted">${esc(r.purchase_place)}</small>`), csv: (r) => (r.order_id ? get('orders', r.order_id)?.order_number : r.purchase_place) },
+        { key: 'status', label: 'Status', sort: (r) => r.status, html: (r) => badge(r.status) + (r.replacement_order_id ? `<br><a class="mono" href="/order?id=${r.replacement_order_id}" style="font-size:12px">${esc(get('orders', r.replacement_order_id)?.order_number)}</a>` : ''), csv: (r) => r.status },
+      ],
+      actions: (r) => `<button type="button" class="c-btn ${r.status === 'submitted' || r.status === 'under_review' ? '' : 'c-btn--outline'} c-btn--sm" data-open>${r.status === 'submitted' || r.status === 'under_review' ? 'proses' : 'lihat'}</button>`,
+      onRow: (r) => decide(r),
+    });
+
+    document.querySelector('[data-table]')!.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('[data-open]');
+      if (!b) return;
+      const key = b.closest('tr')!.dataset.key!;
+      const row = all('warranty_claim').find((r) => keyOf('warranty_claim', r) === key);
+      if (row) decide(row);
+    });
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) {
+      const hit = all('warranty_claim').find((r) => r.claim_number === q);
+      if (hit) decide(hit);
+      else toast('Klaim tidak ditemukan', { tone: 'bad' });
+    }
+  </script>
+</AdminLayout>

@@ -1,0 +1,52 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Log aktivitas" active="activity" crumbs={[{ label: 'Log aktivitas' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Log aktivitas</h1>
+      <p class="lead">Riwayat perubahan oleh admin di browser ini (maks. 300 entri terakhir), termasuk efek berantai setiap perubahan status.</p>
+    </div>
+  </div>
+  <section data-table></section>
+
+  <script>
+    import '../lib/boot.ts';
+    import { mountTable } from '../lib/ui.ts';
+    import { entries, type Entry } from '../lib/activity.ts';
+    import { esc, dateTime, relative } from '../lib/format.ts';
+    import { session } from '../lib/auth.ts';
+
+    const LABEL: Record<string, [string, string]> = {
+      create: ['tambah', 'ok'], update: ['ubah', 'info'], delete: ['hapus', 'bad'], status: ['status', 'warn'], login: ['sesi', ''], export: ['export', ''],
+    };
+    const who = session()?.name ?? 'Admin';
+    const local = (iso: string) => {
+      const d = new Date(iso);
+      const p = (n: number) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+
+    mountTable(document.querySelector('[data-table]')!, {
+      rows: () => entries().map((e, i) => ({ ...e, _i: i })) as any,
+      rowKey: (r) => String(r._i),
+      search: (r) => `${r.title} ${r.table} ${(r.detail ?? []).join(' ')}`,
+      searchPlaceholder: 'Cari aktivitas…',
+      csvName: 'activity_log',
+      pageSize: 25,
+      empty: 'Belum ada aktivitas. Perubahan data akan tercatat di sini.',
+      filters: [
+        { key: 'action', label: 'Aksi', options: Object.entries(LABEL).map(([k, v]) => [k, v[0]] as [string, string]), test: (r, v) => r.action === v },
+        { key: 'table', label: 'Relasi', options: [...new Set(entries().map((e) => e.table))].sort().map((t) => [t, t] as [string, string]), test: (r, v) => r.table === v },
+      ],
+      columns: [
+        { key: 'at', label: 'Waktu', code: false, cls: 'num', html: (r) => `${dateTime(local(r.at))}<br><small class="muted">${relative(r.at)}</small>`, csv: (r) => r.at },
+        { key: 'action', label: 'Aksi', code: false, html: (r) => `<span class="badge ${LABEL[r.action]?.[1] ?? ''}">${LABEL[r.action]?.[0] ?? r.action}</span>`, csv: (r) => r.action },
+        { key: 'table', label: 'Relasi', code: false, html: (r) => `<code>${esc(r.table)}</code>`, csv: (r) => r.table },
+        { key: 'title', label: 'Aktivitas', code: false, html: (r: Entry) => `<b style="font-weight:500">${esc(r.title)}</b>${r.detail?.length ? `<br><small class="muted">${r.detail.map(esc).join(' · ')}</small>` : ''}`, csv: (r) => [r.title, ...(r.detail ?? [])].join(' | ') },
+        { key: 'who', label: 'Oleh', code: false, html: () => esc(who), csv: () => who },
+      ],
+    });
+  </script>
+</AdminLayout>

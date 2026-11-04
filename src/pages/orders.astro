@@ -1,0 +1,57 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Pesanan" active="orders" crumbs={[{ label: 'Penjualan' }, { label: 'Pesanan' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Pesanan</h1>
+      <p class="lead">Relasi <code>Orders</code> dengan <code>OrderItem</code>, <code>Payment</code> (1:0..1), dan <code>Shipment</code> (1:1). Total dihitung, tidak disimpan: Σ(qty × unit_price) − diskon + ongkir.</p>
+    </div>
+  </div>
+  <section data-table></section>
+
+  <script>
+    import '../lib/boot.ts';
+    import { all, get, keyOf } from '../lib/db.ts';
+    import { mountTable } from '../lib/ui.ts';
+    import { rupiah, esc, dateTime, badge, enumLabel } from '../lib/format.ts';
+    import { orderTotal, orderItems, membershipOf } from '../lib/derive.ts';
+    import { ENUMS } from '../lib/schema.ts';
+
+    const pay = (o: any) => all('payment').find((p) => p.order_id === o.order_id);
+    const ship = (o: any) => all('shipment').find((s) => s.order_id === o.order_id);
+    const opts = (vals: readonly string[]) => vals.map((v) => [v, enumLabel(v)] as [string, string]);
+
+    mountTable(document.querySelector('[data-table]')!, {
+      rows: () => all('orders'),
+      rowKey: (r) => keyOf('orders', r),
+      search: (r) => `${r.order_number} ${get('customer', r.customer_id)?.full_name} ${get('customer', r.customer_id)?.email} ${ship(r)?.tracking_number ?? ''}`,
+      searchPlaceholder: 'Cari no. pesanan, customer, resi…',
+      csvName: 'orders',
+      pageSize: 20,
+      defaultSort: { key: 'ordered_at', dir: -1 },
+      filters: [
+        { key: 'status', label: 'Status', options: opts(ENUMS.order_status), test: (r, v) => r.status === v },
+        { key: 'payment', label: 'Payment', options: opts(ENUMS.payment_status), test: (r, v) => pay(r)?.status === v },
+        { key: 'shipment', label: 'Shipment', options: opts(ENUMS.shipment_status), test: (r, v) => ship(r)?.status === v },
+        { key: 'type', label: 'Tipe', options: opts(ENUMS.order_type), test: (r, v) => r.order_type === v },
+      ],
+      columns: [
+        { key: 'order_number', label: 'No. pesanan', sort: (r) => r.order_number, html: (r) => `<a class="mono" href="/order?id=${r.order_id}"><b>${esc(r.order_number)}</b></a>${r.order_type === 'warranty_replacement' ? '<br><span class="badge plain">pengganti garansi</span>' : ''}`, csv: (r) => r.order_number },
+        { key: 'ordered_at', label: 'Tanggal', cls: 'num', sort: (r) => r.ordered_at, html: (r) => dateTime(r.ordered_at), csv: (r) => r.ordered_at },
+        {
+          key: 'customer_id', label: 'Customer', sort: (r) => get('customer', r.customer_id)?.full_name ?? '',
+          html: (r) => { const c = get('customer', r.customer_id); return `${esc(c?.full_name)}<br><small class="muted">${membershipOf(r.customer_id) ? 'Member' : 'Guest'}</small>`; },
+          csv: (r) => get('customer', r.customer_id)?.full_name,
+        },
+        { key: 'items', label: 'Item', code: 'order_item', cls: 'right num', sort: (r) => orderItems(r.order_id).length, html: (r) => String(orderItems(r.order_id).reduce((s, i) => s + i.quantity, 0)), csv: (r) => orderItems(r.order_id).reduce((s, i) => s + i.quantity, 0) },
+        { key: 'total', label: 'Total', code: 'v_order_total', cls: 'right num', sort: (r) => orderTotal(r), html: (r) => `<b>${rupiah(orderTotal(r))}</b>`, csv: (r) => orderTotal(r) },
+        { key: 'payment', label: 'Payment', code: 'payment.status', sort: (r) => pay(r)?.status ?? '', html: (r) => (pay(r) ? badge(pay(r)!.status) : '<span class="muted">tanpa payment</span>'), csv: (r) => pay(r)?.status ?? '' },
+        { key: 'shipment', label: 'Shipment', code: 'shipment.status', sort: (r) => ship(r)?.status ?? '', html: (r) => (ship(r) ? badge(ship(r)!.status) : '—'), csv: (r) => ship(r)?.status ?? '' },
+        { key: 'status', label: 'Status', sort: (r) => r.status, html: (r) => badge(r.status), csv: (r) => r.status },
+      ],
+      onRow: (r) => (location.href = `/order?id=${r.order_id}`),
+    });
+  </script>
+</AdminLayout>

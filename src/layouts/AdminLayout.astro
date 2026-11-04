@@ -1,0 +1,160 @@
+---
+import '../styles/app.css';
+import { ICONS, type IconName } from '../lib/icons.ts';
+import Head from '../components/Head.astro';
+
+interface Props {
+  title: string;
+  active: string;
+  crumbs?: Array<{ label: string; href?: string }>;
+  description?: string;
+}
+const { title, active, crumbs = [], description } = Astro.props;
+
+const groups: Array<{ label: string; items: Array<{ href: string; label: string; key: string; icon: IconName; count?: string }> }> = [
+  { label: 'Ringkasan', items: [{ href: '/', label: 'Dashboard', key: 'dashboard', icon: 'dashboard' }] },
+  {
+    label: 'Katalog',
+    items: [
+      { href: '/products', label: 'Produk', key: 'products', icon: 'product', count: 'lowStock' },
+      { href: '/categories', label: 'Kategori', key: 'categories', icon: 'category' },
+    ],
+  },
+  {
+    label: 'Penjualan',
+    items: [
+      { href: '/orders', label: 'Pesanan', key: 'orders', icon: 'orders', count: 'pending' },
+      { href: '/promo-codes', label: 'Kode promo', key: 'promo-codes', icon: 'promo' },
+    ],
+  },
+  {
+    label: 'Pelanggan',
+    items: [
+      { href: '/customers', label: 'Customer & member', key: 'customers', icon: 'customers' },
+      { href: '/reviews', label: 'Ulasan', key: 'reviews', icon: 'review' },
+    ],
+  },
+  { label: 'After-sales', items: [{ href: '/warranty-claims', label: 'Klaim garansi', key: 'warranty-claims', icon: 'claim', count: 'claims' }] },
+  {
+    label: 'Lainnya',
+    items: [
+      { href: '/stores', label: 'Store locator', key: 'stores', icon: 'store' },
+      { href: '/activity', label: 'Log aktivitas', key: 'activity', icon: 'activity' },
+    ],
+  },
+];
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <Head title={title} description={description} />
+    <script is:inline>
+      // Auth guard before first paint (prototype session in localStorage).
+      try {
+        if (!localStorage.getItem('stanley-admin:session')) location.replace('/login?next=' + encodeURIComponent(location.pathname + location.search));
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar" id="sidebar" aria-label="Navigasi utama">
+        <a class="brand" href="/">
+          <img src="/bear-logo.png" alt="" width="34" height="29" />
+          <div><b>Stanley 1913</b><span>Admin CMS</span></div>
+        </a>
+        <nav class="nav">
+          {
+            groups.map((g) => (
+              <div class="nav-group">
+                <span>{g.label}</span>
+                {g.items.map((it) => (
+                  <a href={it.href} aria-current={it.key === active ? 'page' : undefined}>
+                    <Fragment set:html={ICONS[it.icon]} />
+                    {it.label}
+                    {it.count && <span class="count" data-count={it.count} hidden />}
+                  </a>
+                ))}
+              </div>
+            ))
+          }
+        </nav>
+        <div class="sidebar-foot">
+          <div class="quota" title="Pemakaian localStorage oleh data CMS">
+            <span data-quota>Penyimpanan browser</span>
+            <i><b data-quota-bar style="width:0%"></b></i>
+          </div>
+          <div class="who">
+            <span class="avatar">AS</span>
+            <div><b data-who>Admin Stanley</b><small data-who-email>admin@stanley1913.id</small></div>
+          </div>
+          <button class="c-btn c-btn--outline c-btn--sm" type="button" data-logout><Fragment set:html={ICONS.logout} /> keluar</button>
+        </div>
+      </aside>
+      <div class="scrim" data-scrim></div>
+      <div class="main">
+        <header class="topbar">
+          <button class="c-btn c-btn--ghost c-btn--icon menu-btn" type="button" data-menu aria-label="Buka menu" aria-controls="sidebar"><Fragment set:html={ICONS.menu} /></button>
+          <nav class="crumbs" aria-label="Breadcrumb">
+            <a href="/">Admin</a>
+            {
+              crumbs.map((c) => (
+                <>
+                  <span aria-hidden="true">/</span>
+                  {c.href ? <a href={c.href}>{c.label}</a> : <span>{c.label}</span>}
+                </>
+              ))
+            }
+          </nav>
+          <span class="spacer"></span>
+          <slot name="top" />
+        </header>
+        <main class="page" id="main">
+          <slot />
+        </main>
+      </div>
+    </div>
+    <script>
+      import '../lib/boot.ts';
+      import { all, onChange, storageBytes } from '../lib/db.ts';
+      import { logout, session } from '../lib/auth.ts';
+      import { log } from '../lib/activity.ts';
+
+      const s = session();
+      if (s) {
+        document.querySelector('[data-who]')!.textContent = s.name;
+        document.querySelector('[data-who-email]')!.textContent = s.email;
+      }
+      function counts() {
+        const map: Record<string, number> = {
+          pending: all('orders').filter((o) => o.status === 'pending').length,
+          lowStock: all('product').filter((p) => p.is_active && p.stock_qty <= 5).length,
+          claims: all('warranty_claim').filter((c) => c.status === 'submitted' || c.status === 'under_review').length,
+        };
+        document.querySelectorAll<HTMLElement>('[data-count]').forEach((el) => {
+          const n = map[el.dataset.count!] ?? 0;
+          el.textContent = String(n);
+          el.hidden = n === 0;
+        });
+        const used = storageBytes();
+        const limit = 5 * 1024 * 1024;
+        document.querySelector('[data-quota]')!.textContent = `Penyimpanan browser · ${(used / 1024).toFixed(0)} KB dari ±5 MB`;
+        (document.querySelector('[data-quota-bar]') as HTMLElement).style.width = Math.min(100, (used / limit) * 100).toFixed(1) + '%';
+      }
+      counts();
+      onChange(counts);
+
+      document.querySelector('[data-logout]')!.addEventListener('click', () => {
+        log('login', 'session', 'Keluar dari admin');
+        logout();
+        location.href = '/login';
+      });
+      const shell = document.querySelector('.shell')!;
+      document.querySelector('[data-menu]')!.addEventListener('click', () => shell.classList.add('nav-open'));
+      document.querySelector('[data-scrim]')!.addEventListener('click', () => shell.classList.remove('nav-open'));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') shell.classList.remove('nav-open');
+      });
+    </script>
+  </body>
+</html>

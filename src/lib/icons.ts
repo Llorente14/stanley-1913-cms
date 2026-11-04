@@ -1,0 +1,38 @@
+// Lucide icons (ISC) inlined as SVG strings. Generated from lucide-static.
+import dashboard_ from 'lucide-static/dist/esm/icons/layout-dashboard.mjs';
+import product_ from 'lucide-static/dist/esm/icons/package.mjs';
+import category_ from 'lucide-static/dist/esm/icons/folder-tree.mjs';
+import promo_ from 'lucide-static/dist/esm/icons/ticket-percent.mjs';
+import orders_ from 'lucide-static/dist/esm/icons/shopping-bag.mjs';
+import customers_ from 'lucide-static/dist/esm/icons/users.mjs';
+import review_ from 'lucide-static/dist/esm/icons/star.mjs';
+import claim_ from 'lucide-static/dist/esm/icons/shield-check.mjs';
+import store_ from 'lucide-static/dist/esm/icons/map-pin.mjs';
+import activity_ from 'lucide-static/dist/esm/icons/activity.mjs';
+import logout_ from 'lucide-static/dist/esm/icons/log-out.mjs';
+import search_ from 'lucide-static/dist/esm/icons/search.mjs';
+import download_ from 'lucide-static/dist/esm/icons/download.mjs';
+import plus_ from 'lucide-static/dist/esm/icons/plus.mjs';
+import edit_ from 'lucide-static/dist/esm/icons/pencil.mjs';
+import trash_ from 'lucide-static/dist/esm/icons/trash.mjs';
+import sort_ from 'lucide-static/dist/esm/icons/arrow-up-down.mjs';
+import x_ from 'lucide-static/dist/esm/icons/x.mjs';
+import menu_ from 'lucide-static/dist/esm/icons/menu.mjs';
+import chevron_ from 'lucide-static/dist/esm/icons/chevron-right.mjs';
+import image_ from 'lucide-static/dist/esm/icons/image-up.mjs';
+import check_ from 'lucide-static/dist/esm/icons/check.mjs';
+import truck_ from 'lucide-static/dist/esm/icons/truck.mjs';
+import card_ from 'lucide-static/dist/esm/icons/credit-card.mjs';
+import ban_ from 'lucide-static/dist/esm/icons/ban.mjs';
+import external_ from 'lucide-static/dist/esm/icons/external-link.mjs';
+import inbox_ from 'lucide-static/dist/esm/icons/inbox.mjs';
+import clock_ from 'lucide-static/dist/esm/icons/clock.mjs';
+import eye_ from 'lucide-static/dist/esm/icons/eye.mjs';
+import refresh_ from 'lucide-static/dist/esm/icons/refresh-cw.mjs';
+import receipt_ from 'lucide-static/dist/esm/icons/receipt-text.mjs';
+
+const raw = {dashboard: dashboard_, product: product_, category: category_, promo: promo_, orders: orders_, customers: customers_, review: review_, claim: claim_, store: store_, activity: activity_, logout: logout_, search: search_, download: download_, plus: plus_, edit: edit_, trash: trash_, sort: sort_, x: x_, menu: menu_, chevron: chevron_, image: image_, check: check_, truck: truck_, card: card_, ban: ban_, external: external_, inbox: inbox_, clock: clock_, eye: eye_, refresh: refresh_, receipt: receipt_};
+export type IconName = keyof typeof raw;
+const clean = (s: string) => s.replace(/\s+/g, ' ').replace(/class="[^"]*"/, 'aria-hidden="true" focusable="false"').trim();
+export const ICONS = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, clean(v as string)])) as Record<IconName, string>;
+export const icon = (n: IconName) => ICONS[n];

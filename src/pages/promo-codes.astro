@@ -1,0 +1,105 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { ICONS } from '../lib/icons.ts';
+---
+
+<AdminLayout title="Kode promo" active="promo-codes" crumbs={[{ label: 'Penjualan' }, { label: 'Kode promo' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Kode promo</h1>
+      <p class="lead">Satu kode per pesanan. Tidak berlaku untuk produk Sale atau <code>is_promo_eligible = false</code>. Kode personal (<code>membership_id</code> terisi) hanya untuk pemiliknya.</p>
+    </div>
+    <div class="actions"><button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> kode baru</button></div>
+  </div>
+  <section data-table></section>
+
+  <script>
+    import '../lib/boot.ts';
+    import { all, get, insert, update, remove, keyOf } from '../lib/db.ts';
+    import { mountTable, openForm, confirmDialog, attempt, rowButtons } from '../lib/ui.ts';
+    import { rupiah, esc, dateTime, number } from '../lib/format.ts';
+    import { customerName, nowLocal } from '../lib/derive.ts';
+    import { log } from '../lib/activity.ts';
+    import type { Row } from '../lib/schema.ts';
+
+    const used = (p: Row) => all('orders').filter((o) => o.promo_code_id === p.promo_code_id && o.status !== 'cancelled').length;
+    function state(p: Row) {
+      const now = nowLocal();
+      if (p.usage_limit && used(p) >= p.usage_limit) return ['kuota habis', 'bad'];
+      if (now < p.starts_at) return ['terjadwal', 'info'];
+      if (now > p.ends_at) return ['berakhir', ''];
+      return ['aktif', 'ok'];
+    }
+    const owner = (p: Row) => {
+      if (!p.membership_id) return 'Umum';
+      const m = get('membership', p.membership_id);
+      return m ? customerName(m.customer_id) : '—';
+    };
+    const value = (p: Row) => (p.discount_type === 'percentage' ? `${p.discount_value}%` : rupiah(p.discount_value));
+
+    function edit(p?: Row) {
+      const members = all('membership').map((m) => [m.membership_id, customerName(m.customer_id)] as [number, string]);
+      const d = openForm({
+        title: p ? `Ubah ${p.code}` : 'Kode promo baru',
+        fields: [
+          { name: 'code', label: 'Kode', required: true, placeholder: 'PAYDAY15', help: 'Huruf kapital, angka, tanda hubung.' },
+          { name: 'discount_type', label: 'Jenis diskon', type: 'select', required: true, options: [['percentage', 'Persentase (%)'], ['fixed_amount', 'Nominal (Rp)']] },
+          { name: 'discount_value', label: 'Nilai diskon', type: 'number', required: true, min: 0 },
+          { name: 'max_discount', label: 'Maks. diskon (Rp)', type: 'money', min: 0, help: 'Untuk persentase.' },
+          { name: 'min_purchase', label: 'Min. belanja (Rp)', type: 'money', required: true, min: 0 },
+          { name: 'usage_limit', label: 'Batas pemakaian', type: 'number', min: 1, help: 'Kosong = tanpa batas.' },
+          { name: 'starts_at', label: 'Mulai', type: 'datetime', required: true },
+          { name: 'ends_at', label: 'Berakhir', type: 'datetime', required: true },
+          { name: 'membership_id', label: 'Pemilik (kode personal)', type: 'select', options: members, full: true, help: 'Mis. kode ulang tahun member. Kosong = kode umum.' },
+        ],
+        values: p ?? { discount_type: 'percentage', min_purchase: 0, starts_at: nowLocal() },
+        submit: p ? 'simpan' : 'buat kode',
+        success: p ? 'Kode promo disimpan' : 'Kode promo dibuat',
+        onSubmit: (v) => {
+          v.code = String(v.code).toUpperCase();
+          if (p) { update('promo_code', p.promo_code_id, v); log('update', 'promo_code', `Ubah kode ${v.code}`); }
+          else { insert('promo_code', v); log('create', 'promo_code', `Buat kode ${v.code}`); }
+        },
+      });
+      const code = d.querySelector<HTMLInputElement>('[name=code]')!;
+      code.addEventListener('input', () => (code.value = code.value.toUpperCase().replace(/\s/g, '-')));
+    }
+
+    const t = mountTable(document.querySelector('[data-table]')!, {
+      rows: () => all('promo_code'),
+      rowKey: (r) => keyOf('promo_code', r),
+      search: (r) => `${r.code} ${owner(r)}`,
+      searchPlaceholder: 'Cari kode atau pemilik…',
+      csvName: 'promo_code',
+      defaultSort: { key: 'starts_at', dir: -1 },
+      filters: [
+        { key: 'state', label: 'Status', options: [['aktif', 'Aktif'], ['terjadwal', 'Terjadwal'], ['berakhir', 'Berakhir'], ['kuota habis', 'Kuota habis']], test: (r, v) => state(r)[0] === v },
+        { key: 'type', label: 'Jenis', options: [['percentage', 'Persentase'], ['fixed_amount', 'Nominal']], test: (r, v) => r.discount_type === v },
+        { key: 'owner', label: 'Kepemilikan', options: [['public', 'Umum'], ['personal', 'Personal']], test: (r, v) => (v === 'personal') === !!r.membership_id },
+      ],
+      columns: [
+        { key: 'code', label: 'Kode', sort: (r) => r.code, html: (r) => `<b class="mono">${esc(r.code)}</b>`, csv: (r) => r.code },
+        { key: 'discount_value', label: 'Diskon', code: 'discount_type · value', cls: 'num', sort: (r) => r.discount_value, html: (r) => `${value(r)}${r.max_discount ? `<small class="muted"> maks ${rupiah(r.max_discount)}</small>` : ''}`, csv: (r) => `${r.discount_type}:${r.discount_value}` },
+        { key: 'min_purchase', label: 'Min. belanja', cls: 'right num', sort: (r) => r.min_purchase, html: (r) => rupiah(r.min_purchase), csv: (r) => r.min_purchase },
+        { key: 'starts_at', label: 'Periode', code: 'starts_at → ends_at', sort: (r) => r.starts_at, html: (r) => `${dateTime(r.starts_at)}<br><span class="muted">s.d. ${dateTime(r.ends_at)}</span>`, csv: (r) => `${r.starts_at} - ${r.ends_at}` },
+        { key: 'usage', label: 'Dipakai', code: 'usage_limit', cls: 'right num', sort: (r) => used(r), html: (r) => `${number(used(r))}${r.usage_limit ? ` / ${number(r.usage_limit)}` : ''}`, csv: (r) => used(r) },
+        { key: 'membership_id', label: 'Pemilik', sort: (r) => owner(r), html: (r) => (r.membership_id ? esc(owner(r)) : '<span class="muted">Umum</span>'), csv: (r) => owner(r) },
+        { key: 'state', label: 'Status', code: false, sort: (r) => state(r)[0], html: (r) => { const [l, c] = state(r); return `<span class="badge ${c}">${l}</span>`; }, csv: (r) => state(r)[0] },
+      ],
+      actions: () => rowButtons([{ act: 'edit', label: 'Ubah', ic: 'edit' }, { act: 'del', label: 'Hapus', ic: 'trash' }]),
+      onRow: (r) => edit(r),
+    });
+
+    document.querySelector('[data-table]')!.addEventListener('click', async (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
+      const row = b && t.rowFromEvent(e);
+      if (!b || !row) return;
+      if (b.dataset.act === 'edit') edit(row);
+      if (b.dataset.act === 'del') {
+        const ok = await confirmDialog({ title: `Hapus ${row.code}?`, body: 'Kode yang sudah dipakai pesanan tidak bisa dihapus (RESTRICT, menjaga histori).', confirm: 'hapus', danger: true });
+        if (ok) attempt(() => { remove('promo_code', row.promo_code_id); log('delete', 'promo_code', `Hapus kode ${row.code}`); }, 'Kode promo dihapus');
+      }
+    });
+    document.querySelector('[data-new]')!.addEventListener('click', () => edit());
+  </script>
+</AdminLayout>

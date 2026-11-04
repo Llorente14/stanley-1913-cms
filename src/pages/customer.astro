@@ -1,0 +1,194 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Detail customer" active="customers" crumbs={[{ label: 'Pelanggan' }, { label: 'Customer & member', href: '/customers' }, { label: 'Detail' }]}>
+  <div data-root class="stack"></div>
+
+  <script>
+    import '../lib/boot.ts';
+    import { all, get, insert, update, remove, onChange, where } from '../lib/db.ts';
+    import { attempt, confirmDialog, openForm, stars, type FieldDef } from '../lib/ui.ts';
+    import { rupiah, esc, date, dateTime, badge, tier, number, enumLabel } from '../lib/format.ts';
+    import { membershipOf, orderTotal, nowLocal, pointsFor, tierFor, localDate } from '../lib/derive.ts';
+    import { log } from '../lib/activity.ts';
+    import { icon } from '../lib/icons.ts';
+    import type { Row } from '../lib/schema.ts';
+
+    const id = Number(new URLSearchParams(location.search).get('id'));
+    const root = document.querySelector<HTMLElement>('[data-root]')!;
+    const b64 = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const fakeHash = () => '$2b$10$' + Array.from(crypto.getRandomValues(new Uint8Array(53)), (n) => b64[n % 64]).join('');
+
+    const addrFields: FieldDef[] = [
+      { name: 'label', label: 'Label', required: true, placeholder: 'Rumah / Kantor' },
+      { name: 'recipient_name', label: 'Penerima', required: true },
+      { name: 'recipient_phone', label: 'Telepon penerima', type: 'tel', required: true },
+      { name: 'postal_code', label: 'Kode pos', required: true, placeholder: '12430' },
+      { name: 'street_address', label: 'Alamat jalan', required: true, full: true },
+      { name: 'city', label: 'Kota', required: true },
+      { name: 'province', label: 'Provinsi', required: true },
+    ];
+
+    function render() {
+      const c = get('customer', id);
+      if (!c) {
+        root.innerHTML = `<div class="panel"><div class="empty">${icon('inbox')}<span>Customer #${esc(id)} tidak ditemukan.</span><a class="c-btn c-btn--outline c-btn--sm" href="/customers">kembali ke daftar</a></div></div>`;
+        return;
+      }
+      document.title = `${c.full_name} | Stanley 1913 Admin`;
+      const m = membershipOf(id);
+      const addrs = m ? where('customer_address', (a) => a.membership_id === m.membership_id) : [];
+      const orders = where('orders', (o) => o.customer_id === id).sort((a, b) => (a.ordered_at < b.ordered_at ? 1 : -1));
+      const reviews = where('review', (r) => r.customer_id === id);
+      const claims = where('warranty_claim', (w) => w.customer_id === id);
+      const promos = m ? where('promo_code', (p) => p.membership_id === m.membership_id) : [];
+      const earned = orders.filter((o) => o.status === 'completed' && o.order_type === 'regular').reduce((s, o) => s + pointsFor(orderTotal(o)), 0);
+      const next = m ? (m.total_points < 300 ? 300 - m.total_points : m.total_points < 600 ? 600 - m.total_points : 0) : 0;
+
+      root.innerHTML = `
+      <div class="page-head">
+        <div>
+          <h1>${esc(c.full_name)}</h1>
+          <p class="lead">${m ? tier(m.tier) : '<span class="badge plain">Guest</span>'} · bergabung ${date(c.created_at)} · <code>customer_id = ${c.customer_id}</code></p>
+        </div>
+        <div class="actions"><button class="c-btn c-btn--outline" data-act="edit">${icon('edit')} ubah profil</button></div>
+      </div>
+      <div class="grid-2">
+        <div style="display:grid;gap:24px">
+          <section class="panel">
+            <div class="panel-head"><h2>Pesanan</h2><span class="muted">${orders.length}</span></div>
+            <div class="table-wrap"><table class="data"><thead><tr><th>No. pesanan</th><th>Tanggal</th><th class="right">Total</th><th>Status</th></tr></thead><tbody>
+            ${orders.map((o) => `<tr><td><a class="mono" href="/order?id=${o.order_id}">${esc(o.order_number)}</a>${o.order_type === 'warranty_replacement' ? ' <span class="badge plain">pengganti</span>' : ''}</td><td class="num">${dateTime(o.ordered_at)}</td><td class="right num">${rupiah(orderTotal(o))}</td><td>${badge(o.status)}</td></tr>`).join('') || `<tr><td colspan="4"><div class="empty">Belum ada pesanan.</div></td></tr>`}
+            </tbody></table></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Alamat tersimpan</h2><span class="muted mono">customer_address</span>
+              <div class="actions">${m ? `<button class="c-btn c-btn--outline c-btn--sm" data-act="addr-new">${icon('plus')} alamat</button>` : ''}</div></div>
+            ${m ? `<div class="table-wrap"><table class="data"><thead><tr><th>Label</th><th>Penerima</th><th>Alamat</th><th></th></tr></thead><tbody>
+              ${addrs.map((a) => `<tr data-addr="${a.customer_address_id}"><td><b>${esc(a.label)}</b></td><td>${esc(a.recipient_name)}<br><small class="muted num">${esc(a.recipient_phone)}</small></td><td>${esc(a.street_address)}, ${esc(a.city)}, ${esc(a.province)} <span class="num">${esc(a.postal_code)}</span></td>
+                <td class="actions"><button class="c-btn c-btn--ghost c-btn--icon" data-act="addr-edit" aria-label="Ubah alamat" title="Ubah">${icon('edit')}</button><button class="c-btn c-btn--ghost c-btn--icon" data-act="addr-del" aria-label="Hapus alamat" title="Hapus">${icon('trash')}</button></td></tr>`).join('') || `<tr><td colspan="4"><div class="empty">Belum ada alamat.</div></td></tr>`}
+              </tbody></table></div>` : '<div class="panel-body"><p class="muted">Guest tidak menyimpan alamat. Alamat pengiriman Guest disalin langsung ke Shipment saat checkout.</p></div>'}
+          </section>
+
+          ${reviews.length ? `<section class="panel"><div class="panel-head"><h2>Ulasan</h2><span class="muted">${reviews.length}</span></div>
+            <ul class="feed">${reviews.map((r) => { const p = get('product', r.product_id); return `<li><span class="ic">${icon('review')}</span><div><b>${esc(r.title)}</b> ${stars(r.rating)}<small>${esc(p?.name)} · ${esc(p?.color)}</small></div><time>${date(r.created_at)}</time></li>`; }).join('')}</ul></section>` : ''}
+        </div>
+
+        <div style="display:grid;gap:24px">
+          <section class="panel">
+            <div class="panel-head"><h2>Profil</h2><span class="muted mono">customer</span></div>
+            <div class="panel-body"><dl class="dl">
+              <dt>Email</dt><dd>${esc(c.email)}</dd>
+              <dt>Telepon</dt><dd class="num">${esc(c.phone)}</dd>
+              <dt>Klaim garansi</dt><dd>${claims.length ? claims.map((w) => `<a class="mono" href="/warranty-claims?q=${encodeURIComponent(w.claim_number)}">${esc(w.claim_number)}</a> ${badge(w.status)}`).join('<br>') : '—'}</dd>
+            </dl></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head"><h2>Stanley 1913 Club</h2><span class="muted mono">membership</span></div>
+            <div class="panel-body" style="display:grid;gap:16px">
+            ${m ? `<dl class="dl">
+                <dt>Tier</dt><dd>${tier(m.tier)}</dd>
+                <dt>Total poin</dt><dd class="num"><b>${number(m.total_points)}</b> <small class="muted">(${number(earned)} dari pesanan selesai)</small></dd>
+                <dt>Tier berlaku</dt><dd>${m.tier_valid_until ? `s.d. ${date(m.tier_valid_until)}` : '—'}</dd>
+                <dt>Tanggal lahir</dt><dd>${date(m.birth_date)}</dd>
+                <dt>Terdaftar</dt><dd>${dateTime(m.registered_at)}</dd>
+                <dt>Password</dt><dd class="mono" title="bcrypt CHAR(60)">${esc(m.password_hash.slice(0, 18))}…</dd>
+              </dl>
+              ${next ? `<p class="note">${number(next)} poin lagi menuju ${m.total_points < 300 ? 'VIP (≥ 300)' : 'All-Access (≥ 600)'}.</p>` : ''}
+              ${promos.length ? `<p class="note">Kode personal: ${promos.map((p) => `<code>${esc(p.code)}</code>`).join(', ')}</p>` : ''}
+              <div class="inline-actions">
+                <button class="c-btn c-btn--outline c-btn--sm" data-act="mem-edit">${icon('edit')} ubah membership</button>
+                <button class="c-btn c-btn--ghost c-btn--sm" data-act="mem-del">hapus membership</button>
+              </div>`
+              : `<p class="muted">Customer ini Guest. Membuat Membership menambahkan baris 1:1 dengan <code>customer_id</code> UNIQUE.</p>
+                 <div><button class="c-btn c-btn--sm" data-act="mem-new">${icon('plus')} jadikan member</button></div>`}
+            </div>
+          </section>
+        </div>
+      </div>`;
+    }
+
+    function memberForm(m?: Row) {
+      openForm({
+        title: m ? 'Ubah membership' : 'Jadikan member',
+        subtitle: 'Tier disimpan sebagai status (berlaku 12 bulan), bukan diturunkan dari poin.',
+        fields: [
+          { name: 'tier', label: 'Tier', type: 'select', required: true, options: [['member', 'Member'], ['vip', 'VIP (≥ 300 poin)'], ['all_access', 'All-Access (≥ 600 poin)']] },
+          { name: 'total_points', label: 'Total poin', type: 'number', required: true, min: 0 },
+          { name: 'tier_valid_until', label: 'Tier berlaku s.d.', type: 'date' },
+          { name: 'birth_date', label: 'Tanggal lahir', type: 'date' },
+        ],
+        values: m ?? { tier: 'member', total_points: 0 },
+        submit: m ? 'simpan' : 'buat membership',
+        success: m ? 'Membership disimpan' : 'Customer menjadi member',
+        onSubmit: (v) => {
+          const fx: string[] = [];
+          if (tierFor(Number(v.total_points)) !== v.tier) fx.push(`Catatan: poin ${v.total_points} biasanya setara tier ${enumLabel(tierFor(Number(v.total_points)))}.`);
+          if (m) { update('membership', m.membership_id, v); log('update', 'membership', `Ubah membership ${get('customer', id)!.full_name}`); }
+          else {
+            insert('membership', { ...v, customer_id: id, password_hash: fakeHash(), registered_at: nowLocal(), tier_valid_until: v.tier_valid_until || (v.tier !== 'member' ? localDate(new Date(Date.now() + 365 * 864e5)) : null) });
+            log('create', 'membership', `${get('customer', id)!.full_name} menjadi member`);
+          }
+          return fx;
+        },
+      });
+    }
+
+    function addrForm(a?: Row) {
+      const m = membershipOf(id)!;
+      openForm({
+        title: a ? 'Ubah alamat' : 'Alamat baru',
+        fields: addrFields,
+        values: a ?? { recipient_name: get('customer', id)!.full_name, recipient_phone: get('customer', id)!.phone },
+        submit: a ? 'simpan' : 'tambah alamat',
+        success: a ? 'Alamat disimpan' : 'Alamat ditambahkan',
+        onSubmit: (v) => {
+          if (a) { update('customer_address', a.customer_address_id, v); log('update', 'customer_address', `Ubah alamat ${v.label}`); }
+          else { insert('customer_address', { ...v, membership_id: m.membership_id }); log('create', 'customer_address', `Tambah alamat ${v.label}`); }
+        },
+      });
+    }
+
+    root.addEventListener('click', async (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
+      if (!b) return;
+      const c = get('customer', id)!;
+      const m = membershipOf(id);
+      const addrId = Number(b.closest<HTMLElement>('[data-addr]')?.dataset.addr);
+      switch (b.dataset.act) {
+        case 'edit':
+          openForm({
+            title: 'Ubah profil',
+            fields: [
+              { name: 'full_name', label: 'Nama lengkap', required: true, full: true },
+              { name: 'email', label: 'Email', type: 'email', required: true },
+              { name: 'phone', label: 'Telepon', type: 'tel', required: true },
+            ],
+            values: c,
+            submit: 'simpan',
+            success: 'Profil disimpan',
+            onSubmit: (v) => { update('customer', id, v); log('update', 'customer', `Ubah customer ${v.full_name}`); },
+          });
+          break;
+        case 'mem-new': memberForm(); break;
+        case 'mem-edit': memberForm(m); break;
+        case 'mem-del':
+          if (await confirmDialog({ title: 'Hapus membership?', body: 'Customer kembali menjadi Guest. Alamat tersimpan dan kode promo personal ikut terhapus (ON DELETE CASCADE).', confirm: 'hapus membership', danger: true }))
+            attempt(() => { const plan = remove('membership', m!.membership_id); log('delete', 'membership', `Hapus membership ${c.full_name}`); return [`${plan.remove.length} baris dihapus`]; }, 'Membership dihapus');
+          break;
+        case 'addr-new': addrForm(); break;
+        case 'addr-edit': addrForm(get('customer_address', addrId)); break;
+        case 'addr-del':
+          if (await confirmDialog({ title: 'Hapus alamat?', body: 'Pesanan lama tidak berubah karena alamat Shipment adalah salinan saat checkout.', confirm: 'hapus alamat', danger: true }))
+            attempt(() => { remove('customer_address', addrId); log('delete', 'customer_address', 'Hapus alamat'); }, 'Alamat dihapus');
+          break;
+      }
+    });
+
+    render();
+    onChange(render);
+  </script>
+</AdminLayout>

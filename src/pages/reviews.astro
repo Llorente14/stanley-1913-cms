@@ -1,0 +1,64 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+---
+
+<AdminLayout title="Ulasan" active="reviews" crumbs={[{ label: 'Pelanggan' }, { label: 'Ulasan' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Ulasan</h1>
+      <p class="lead">Relasi <code>Review</code> dengan composite key <code>(customer_id, product_id)</code>: satu ulasan per customer per produk, hanya untuk produk yang pernah dibeli. Moderasi = hapus ulasan.</p>
+    </div>
+  </div>
+  <div class="kpis" data-summary></div>
+  <section data-table></section>
+
+  <script>
+    import '../lib/boot.ts';
+    import { all, get, remove, keyOf, onChange } from '../lib/db.ts';
+    import { mountTable, confirmDialog, attempt, rowButtons, stars } from '../lib/ui.ts';
+    import { esc, date } from '../lib/format.ts';
+    import { log } from '../lib/activity.ts';
+
+    function summary() {
+      const rs = all('review');
+      const avg = rs.length ? rs.reduce((s, r) => s + r.rating, 0) / rs.length : 0;
+      const low = rs.filter((r) => r.rating <= 2).length;
+      const reviewed = new Set(rs.map((r) => r.product_id)).size;
+      document.querySelector('[data-summary]')!.innerHTML = `
+        <div class="kpi"><span class="k-label">Rata-rata rating</span><span class="k-value">${avg.toFixed(1).replace('.', ',')}</span><span class="k-sub">${stars(Math.round(avg))}</span></div>
+        <div class="kpi"><span class="k-label">Total ulasan</span><span class="k-value">${rs.length}</span><span class="k-sub">dari pembeli terverifikasi</span></div>
+        <a class="kpi" href="/reviews?rating=low"><span class="k-label">Rating rendah (≤ 2)</span><span class="k-value">${low}</span><span class="k-sub">perlu ditindaklanjuti CS</span></a>
+        <div class="kpi"><span class="k-label">Produk diulas</span><span class="k-value">${reviewed}</span><span class="k-sub">dari ${all('product').length} SKU</span></div>`;
+    }
+    summary();
+    onChange(summary);
+
+    const t = mountTable(document.querySelector('[data-table]')!, {
+      rows: () => all('review'),
+      rowKey: (r) => keyOf('review', r),
+      search: (r) => `${r.title} ${r.comment ?? ''} ${get('product', r.product_id)?.name} ${get('customer', r.customer_id)?.full_name}`,
+      searchPlaceholder: 'Cari judul, isi, produk, customer…',
+      csvName: 'review',
+      defaultSort: { key: 'created_at', dir: -1 },
+      filters: [
+        { key: 'rating', label: 'Rating', options: [['5', '5 bintang'], ['4', '4 bintang'], ['3', '3 bintang'], ['low', '1–2 bintang']], test: (r, v) => (v === 'low' ? r.rating <= 2 : r.rating === Number(v)) },
+      ],
+      columns: [
+        { key: 'product_id', label: 'Produk', sort: (r) => get('product', r.product_id)?.name ?? '', html: (r) => { const p = get('product', r.product_id); return `<div class="cell-prod">${p?.image_url ? `<img src="${esc(p.image_url)}" alt="" loading="lazy" width="44" height="44">` : ''}<div><b>${esc(p?.name)}</b><small>${esc(p?.color)} · ${esc(p?.size)}</small></div></div>`; }, csv: (r) => get('product', r.product_id)?.sku },
+        { key: 'rating', label: 'Rating', sort: (r) => r.rating, html: (r) => stars(r.rating), csv: (r) => r.rating },
+        { key: 'title', label: 'Ulasan', code: 'title · comment', html: (r) => `<b>${esc(r.title)}</b><br><span class="muted" style="display:block;max-width:52ch">${esc(r.comment ?? '')}</span>`, csv: (r) => `${r.title} — ${r.comment ?? ''}` },
+        { key: 'customer_id', label: 'Customer', sort: (r) => get('customer', r.customer_id)?.full_name ?? '', html: (r) => `<a href="/customer?id=${r.customer_id}">${esc(get('customer', r.customer_id)?.full_name)}</a>`, csv: (r) => get('customer', r.customer_id)?.full_name },
+        { key: 'created_at', label: 'Tanggal', cls: 'num', sort: (r) => r.created_at, html: (r) => date(r.created_at), csv: (r) => r.created_at },
+      ],
+      actions: () => rowButtons([{ act: 'del', label: 'Hapus ulasan', ic: 'trash' }]),
+    });
+
+    document.querySelector('[data-table]')!.addEventListener('click', async (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
+      const row = b && t.rowFromEvent(e);
+      if (!b || !row) return;
+      const ok = await confirmDialog({ title: 'Hapus ulasan?', body: `“${esc(row.title)}” dari ${esc(get('customer', row.customer_id)?.full_name)} akan dihapus permanen.`, confirm: 'hapus ulasan', danger: true });
+      if (ok) attempt(() => { remove('review', keyOf('review', row)); log('delete', 'review', `Hapus ulasan “${row.title}”`); }, 'Ulasan dihapus');
+    });
+  </script>
+</AdminLayout>

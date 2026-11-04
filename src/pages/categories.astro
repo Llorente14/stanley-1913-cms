@@ -1,0 +1,103 @@
+---
+import AdminLayout from '../layouts/AdminLayout.astro';
+import { ICONS } from '../lib/icons.ts';
+---
+
+<AdminLayout title="Kategori" active="categories" crumbs={[{ label: 'Katalog' }, { label: 'Kategori' }]}>
+  <div class="page-head">
+    <div>
+      <h1>Kategori</h1>
+      <p class="lead">Relasi rekursif <code>Category contains Category</code> lewat <code>parent_category_id</code>. Hapus ditolak bila masih punya subkategori atau produk (ON DELETE RESTRICT).</p>
+    </div>
+    <div class="actions">
+      <button class="c-btn" type="button" data-new><Fragment set:html={ICONS.plus} /> kategori utama</button>
+    </div>
+  </div>
+  <section class="panel">
+    <div class="panel-head"><h2>Pohon kategori</h2><span class="muted" data-sum></span></div>
+    <ul class="tree" data-tree></ul>
+  </section>
+
+  <script>
+    import '../lib/boot.ts';
+    import { all, get, insert, update, remove, onChange } from '../lib/db.ts';
+    import { openForm, confirmDialog, attempt, rowButtons } from '../lib/ui.ts';
+    import { esc } from '../lib/format.ts';
+    import { log } from '../lib/activity.ts';
+    import { icon } from '../lib/icons.ts';
+    import type { Row } from '../lib/schema.ts';
+
+    const treeEl = document.querySelector<HTMLElement>('[data-tree]')!;
+    const children = (id: number | null) => all('category').filter((c) => (c.parent_category_id ?? null) === id).sort((a, b) => a.name.localeCompare(b.name));
+    const direct = (id: number) => all('product').filter((p) => p.category_id === id).length;
+    const total = (id: number): number => direct(id) + children(id).reduce((s, c) => s + total(c.category_id), 0);
+    const descendants = (id: number): number[] => children(id).flatMap((c) => [c.category_id, ...descendants(c.category_id)]);
+
+    function node(c: Row): string {
+      const kids = children(c.category_id);
+      return `<li><div class="node" data-id="${c.category_id}">
+        <div class="grow"><b>${esc(c.name)}</b><span class="mono muted">/${esc(c.slug)}</span></div>
+        <span class="badge plain num" title="Produk langsung / termasuk subkategori">${direct(c.category_id)} / ${total(c.category_id)} produk</span>
+        <a class="c-btn c-btn--ghost c-btn--sm" href="/products?category=${c.category_id}">lihat produk</a>
+        <button type="button" class="c-btn c-btn--ghost c-btn--icon" data-act="child" title="Tambah subkategori" aria-label="Tambah subkategori">${icon('plus')}</button>
+        ${rowButtons([{ act: 'edit', label: 'Ubah', ic: 'edit' }, { act: 'del', label: 'Hapus', ic: 'trash' }])}
+      </div>${kids.length ? `<ul>${kids.map(node).join('')}</ul>` : ''}</li>`;
+    }
+    function render() {
+      treeEl.innerHTML = children(null).map(node).join('') || '<li class="empty">Belum ada kategori.</li>';
+      document.querySelector('[data-sum]')!.textContent = `${all('category').length} kategori · ${all('product').length} produk`;
+    }
+
+    const slugify = (s: string) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
+
+    function edit(c?: Row, parent?: number | null) {
+      const banned = c ? new Set([c.category_id, ...descendants(c.category_id)]) : new Set<number>();
+      const options = all('category')
+        .filter((x) => !banned.has(x.category_id))
+        .map((x) => [x.category_id, x.name] as [number, string]);
+      const d = openForm({
+        title: c ? 'Ubah kategori' : parent ? `Subkategori baru di ${get('category', parent)?.name}` : 'Kategori utama baru',
+        fields: [
+          { name: 'name', label: 'Nama', required: true },
+          { name: 'slug', label: 'Slug', required: true, help: 'Alternate key; otomatis dari nama.' },
+          { name: 'parent_category_id', label: 'Induk kategori', type: 'select', options, full: true, help: 'Kosong = kategori utama. Kategori turunan sendiri tidak bisa dipilih (mencegah siklus).' },
+        ],
+        values: c ?? { parent_category_id: parent ?? '' },
+        submit: c ? 'simpan' : 'tambah',
+        success: c ? 'Kategori disimpan' : 'Kategori ditambahkan',
+        onSubmit: (v) => {
+          if (c) {
+            update('category', c.category_id, v);
+            log('update', 'category', `Ubah kategori ${v.name}`);
+          } else {
+            insert('category', v);
+            log('create', 'category', `Tambah kategori ${v.name}`);
+          }
+        },
+      });
+      const name = d.querySelector<HTMLInputElement>('[name=name]')!;
+      const slug = d.querySelector<HTMLInputElement>('[name=slug]')!;
+      let touched = !!c;
+      slug.addEventListener('input', () => (touched = true));
+      name.addEventListener('input', () => {
+        if (!touched) slug.value = slugify(name.value);
+      });
+    }
+
+    treeEl.addEventListener('click', async (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
+      if (!b) return;
+      const id = Number(b.closest<HTMLElement>('.node')!.dataset.id);
+      const c = get('category', id)!;
+      if (b.dataset.act === 'edit') edit(c);
+      if (b.dataset.act === 'child') edit(undefined, id);
+      if (b.dataset.act === 'del') {
+        const ok = await confirmDialog({ title: 'Hapus kategori?', body: `<b>${esc(c.name)}</b> akan dihapus permanen.`, confirm: 'hapus', danger: true });
+        if (ok) attempt(() => { remove('category', id); log('delete', 'category', `Hapus kategori ${c.name}`); }, 'Kategori dihapus');
+      }
+    });
+    document.querySelector('[data-new]')!.addEventListener('click', () => edit());
+    render();
+    onChange(render);
+  </script>
+</AdminLayout>

@@ -1,0 +1,78 @@
+---
+import '../styles/app.css';
+import Head from '../components/Head.astro';
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <Head title="Masuk" description="Masuk ke Stanley 1913 Admin CMS untuk mengelola data toko stanley_store." />
+  </head>
+  <body>
+    <div class="login">
+      <section class="login-art" aria-hidden="true">
+        <img
+          class="hero"
+          src="https://cdn.shopify.com/s/files/1/0375/3269/6635/files/Web_PNG_Square-The_Quencher_H2.0_Flowstate_Tumbler-40_oz_1.18_L-Shadow_Green_Ribbon-Front.png?v=1791323330&width=900"
+          alt=""
+          onerror="this.remove()"
+        />
+        <p>Sejak 1913. Satu dasbor untuk katalog, pesanan, member Club, dan klaim Lifetime Warranty.</p>
+      </section>
+      <section class="login-form">
+        <form data-login novalidate onsubmit="return false">
+          <a class="brand" href="/login">
+            <img src="/bear-logo.png" alt="" width="34" height="29" />
+            <div><b>Stanley 1913</b><span>Admin CMS</span></div>
+          </a>
+          <div>
+            <h1>Masuk ke admin</h1>
+            <p class="muted" style="margin-top:8px">Gunakan akun admin toko untuk mengelola data <code>stanley_store</code>.</p>
+          </div>
+          <p class="form-error" data-reset hidden role="status">Data demo sudah dikembalikan ke kondisi awal.</p>
+          <div class="field">
+            <label for="email">Email</label>
+            <input class="input" id="email" name="email" type="email" autocomplete="username" required />
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input class="input" id="password" name="password" type="password" autocomplete="current-password" required />
+            <span class="error" data-error hidden>Email atau password salah. Periksa lagi lalu coba masuk.</span>
+          </div>
+          <button class="c-btn" type="submit">masuk</button>
+        </form>
+      </section>
+    </div>
+    <script>
+      import { login, session } from '../lib/auth.ts';
+      import { log } from '../lib/activity.ts';
+
+      const params = new URLSearchParams(location.search);
+      const next = params.get('next') || '/';
+      const safeNext = next.startsWith('/') && !next.startsWith('//') ? next : '/';
+      if (session()) location.replace(safeNext);
+      if (params.get('reset')) {
+        const r = document.querySelector<HTMLElement>('[data-reset]')!;
+        r.hidden = false;
+        r.style.background = 'var(--success-soft)';
+        r.style.color = 'var(--success)';
+      }
+
+      const form = document.querySelector<HTMLFormElement>('[data-login]')!;
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+        const pass = (form.elements.namedItem('password') as HTMLInputElement).value;
+        const err = form.querySelector<HTMLElement>('[data-error]')!;
+        if (login(email, pass)) {
+          log('login', 'session', 'Masuk ke admin');
+          location.href = safeNext;
+        } else {
+          err.hidden = false;
+          form.querySelectorAll('.field').forEach((f) => f.classList.add('invalid'));
+          (form.elements.namedItem('password') as HTMLInputElement).select();
+        }
+      });
+    </script>
+  </body>
+</html>
